@@ -1,0 +1,379 @@
+2025-05-21 08:50:09 - INFO - 找到 1 个活跃的策略
+2025-05-21 08:50:10 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 08:50:10 - INFO - 开始启动数据源...
+2025-05-21 08:50:10 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:21 - INFO - 找到 1 个活跃的策略
+2025-05-21 08:54:21 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 08:54:21 - INFO - 开始启动数据源...
+2025-05-21 08:54:21 - INFO - 开始监听策略的运行状态...
+2025-05-21 08:54:21 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:22 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:23 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:24 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:25 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:26 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:27 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:28 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 08:54:29 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-21 09:16:10 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:16:10 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:16:10 - ERROR - 启动策略失败: period 和 symbol 是必填参数
+2025-05-21 09:16:10 - INFO - 开始启动数据源...
+2025-05-21 09:16:10 - INFO - 开始监听策略的运行状态...
+2025-05-21 09:17:25 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:17:26 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:17:26 - ERROR - 启动策略失败: 错误: w18za9y81vhw56c - rsi 的 period 和 symbol 是必填参数
+2025-05-21 09:17:26 - INFO - 开始启动数据源...
+2025-05-21 09:17:26 - INFO - 开始监听策略的运行状态...
+2025-05-21 09:17:35 - INFO - 退出监听
+2025-05-21 09:37:39 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:37:40 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:37:40 - INFO - 开始启动数据源...
+2025-05-21 09:37:40 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:40 - INFO - 开始监听策略的运行状态...
+2025-05-21 09:37:41 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:42 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:43 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:44 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:45 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:46 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:47 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:48 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:49 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:50 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:51 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:52 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:53 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:54 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:55 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:56 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:57 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:58 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:37:59 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:00 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:01 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:02 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:03 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:04 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:05 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:06 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:07 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:08 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:09 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:10 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:11 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:12 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:13 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:14 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:15 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:16 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:17 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:18 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:19 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:20 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:21 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:22 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:23 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:24 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:25 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:26 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:27 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:28 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:29 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:30 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:31 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:32 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:33 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:34 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:35 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:36 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:37 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:38 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:39 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:40 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:41 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:42 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:43 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:44 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:45 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:46 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:47 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:48 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:49 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:50 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:51 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:52 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:53 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:54 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:55 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:56 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:57 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:58 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:38:59 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:00 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:01 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:02 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:03 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:04 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:05 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:06 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:07 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:08 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:09 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:10 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:11 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:12 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:13 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:14 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:15 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:16 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:17 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:18 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:19 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:20 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:21 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:22 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:23 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:24 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:25 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:26 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:27 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:28 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:29 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:30 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:31 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:32 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:33 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:34 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:35 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:36 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:37 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:38 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:39 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:40 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:41 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:42 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:43 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:44 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:45 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:46 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:47 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:48 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:49 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:50 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:51 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:52 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:53 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:54 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:55 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:56 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:57 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:58 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:39:59 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:00 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:01 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:02 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:03 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:04 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:05 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:06 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:07 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:40:08 - INFO - RSI策略 rsi 正在运行 - 交易对: 510050.SH
+2025-05-21 09:43:17 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:43:17 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:43:17 - INFO - 开始启动数据源...
+2025-05-21 09:43:17 - INFO - 开始监听策略的运行状态...
+2025-05-21 09:46:00 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:46:01 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:46:01 - INFO - 开始启动数据源...
+2025-05-21 09:46:01 - INFO - 开始监听策略的运行状态...
+2025-05-21 09:48:34 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:48:35 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:48:35 - INFO - 开始启动数据源...
+2025-05-21 09:51:05 - INFO - 找到 1 个活跃的策略
+2025-05-21 09:51:06 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 09:51:06 - INFO - 开始启动数据源...
+2025-05-21 09:51:06 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:15:14 - INFO - 找到 1 个活跃的策略
+2025-05-21 10:15:14 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:15:14 - INFO - 开始启动数据源...
+2025-05-21 10:15:15 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:19:02 - INFO - 找到 2 个活跃的策略
+2025-05-21 10:19:03 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:19:03 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 10:19:03 - INFO - 开始启动数据源...
+2025-05-21 10:19:04 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:22:26 - INFO - 找到 2 个活跃的策略
+2025-05-21 10:22:27 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:22:28 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 10:22:28 - INFO - 开始启动数据源...
+2025-05-21 10:22:28 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:25:00 - INFO - 找到 2 个活跃的策略
+2025-05-21 10:25:00 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:25:01 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 10:25:01 - INFO - 开始启动数据源...
+2025-05-21 10:25:01 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:26:53 - INFO - 找到 2 个活跃的策略
+2025-05-21 10:26:53 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:26:54 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 10:26:54 - INFO - 开始启动数据源...
+2025-05-21 10:26:54 - INFO - 开始监听策略的运行状态...
+2025-05-21 10:30:18 - INFO - 退出监听
+2025-05-21 10:56:35 - INFO - 找到 2 个活跃的策略
+2025-05-21 10:56:35 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 10:56:36 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 10:56:36 - INFO - 开始启动数据源...
+2025-05-21 10:56:36 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:04:45 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:04:45 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:04:46 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:04:46 - INFO - 开始启动数据源...
+2025-05-21 11:04:46 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:07:44 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:07:45 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:07:45 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:07:45 - INFO - 开始启动数据源...
+2025-05-21 11:07:45 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:09:21 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:09:22 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:09:23 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:09:23 - INFO - 开始启动数据源...
+2025-05-21 11:09:23 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:12:23 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:12:23 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:12:24 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:12:24 - INFO - 开始启动数据源...
+2025-05-21 11:12:24 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:16:45 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:16:45 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:16:46 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:16:46 - INFO - 开始启动数据源...
+2025-05-21 11:16:46 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:17:07 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 11:17:07 - ERROR - 启动策略失败: 'NoneType' object has no attribute 'subscribe'
+2025-05-21 11:18:06 - INFO - 找到 3 个活跃的策略
+2025-05-21 11:18:06 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:18:07 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:18:08 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 11:18:08 - INFO - 开始启动数据源...
+2025-05-21 11:18:08 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:18:22 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:18:23 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:18:24 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:18:24 - INFO - 开始启动数据源...
+2025-05-21 11:18:24 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:19:11 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 11:21:23 - INFO - 找到 3 个活跃的策略
+2025-05-21 11:21:24 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:21:24 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:21:25 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 11:21:25 - INFO - 开始启动数据源...
+2025-05-21 11:21:25 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:27:59 - INFO - 找到 2 个活跃的策略
+2025-05-21 11:28:00 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 11:28:00 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 11:28:00 - INFO - 开始启动数据源...
+2025-05-21 11:28:00 - INFO - 开始监听策略的运行状态...
+2025-05-21 11:31:56 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:40:38 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:40:39 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:41:27 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:41:27 - ERROR - RSI策略 rsi 执行出错: <Exception> in run: Server response: 'select first(open) as open,max(high) as high,min(low) as low,last(close) as close,last(preClose) as preClose,sum(volume) as volume,sum(amount) as amount from MinBar where symbol == "510050.SH" group by bar(datetime, 2m) as datetime order by datetime asc => Unrecognized column name [preClose]. RefId:S02005' script: '
+                select first(open) as open, max(high) as high, min(low) as low,
+                last(close) as close, last(preClose) as preClose,
+                sum(volume) as volume , sum(amount) as amount
+                from MinBar
+                where symbol = '510050.SH'
+                group by bar(datetime, 2m) as datetime
+                order by datetime
+            '
+2025-05-21 13:41:27 - ERROR - 策略 rsi (ID: qu7af7gi114dnwe) 发生错误: <Exception> in run: Server response: 'select first(open) as open,max(high) as high,min(low) as low,last(close) as close,last(preClose) as preClose,sum(volume) as volume,sum(amount) as amount from MinBar where symbol == "510050.SH" group by bar(datetime, 2m) as datetime order by datetime asc => Unrecognized column name [preClose]. RefId:S02005' script: '
+                select first(open) as open, max(high) as high, min(low) as low,
+                last(close) as close, last(preClose) as preClose,
+                sum(volume) as volume , sum(amount) as amount
+                from MinBar
+                where symbol = '510050.SH'
+                group by bar(datetime, 2m) as datetime
+                order by datetime
+            '
+2025-05-21 13:41:27 - WARNING - 策略 rsi (ID: qu7af7gi114dnwe) 将在 5 秒后重试
+2025-05-21 13:41:27 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:41:27 - INFO - 开始启动数据源...
+2025-05-21 13:41:28 - INFO - 开始监听策略的运行状态...
+2025-05-21 13:42:02 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:42:02 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:45:19 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:45:20 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:46:51 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:46:52 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:47:22 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:47:23 - ERROR - RSI策略 rsi 执行出错: <Exception> in run: Server response: 'select first(open) as open,max(high) as high,min(low) as low,last(close) as close,last(preClose) as preClose,sum(volume) as volume,sum(amount) as amount from MinBar where symbol == "510050.SH" group by bar(datetime, 2m) as datetime order by datetime asc => Unrecognized column name [preClose]. RefId:S02005' script: '
+                select first(open) as open, max(high) as high, min(low) as low,
+                last(close) as close, last(preClose) as preClose,
+                sum(volume) as volume , sum(amount) as amount
+                from MinBar
+                where symbol = '510050.SH'
+                group by bar(datetime, 2m) as datetime
+                order by datetime
+            '
+2025-05-21 13:47:23 - ERROR - 策略 rsi (ID: qu7af7gi114dnwe) 发生错误: <Exception> in run: Server response: 'select first(open) as open,max(high) as high,min(low) as low,last(close) as close,last(preClose) as preClose,sum(volume) as volume,sum(amount) as amount from MinBar where symbol == "510050.SH" group by bar(datetime, 2m) as datetime order by datetime asc => Unrecognized column name [preClose]. RefId:S02005' script: '
+                select first(open) as open, max(high) as high, min(low) as low,
+                last(close) as close, last(preClose) as preClose,
+                sum(volume) as volume , sum(amount) as amount
+                from MinBar
+                where symbol = '510050.SH'
+                group by bar(datetime, 2m) as datetime
+                order by datetime
+            '
+2025-05-21 13:47:23 - WARNING - 策略 rsi (ID: qu7af7gi114dnwe) 将在 5 秒后重试
+2025-05-21 13:47:23 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:47:23 - INFO - 开始启动数据源...
+2025-05-21 13:47:23 - INFO - 开始监听策略的运行状态...
+2025-05-21 13:49:04 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:49:04 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:49:08 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:50:13 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:50:14 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:52:09 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:52:10 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:52:10 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:10 - ERROR - 策略 rsi (ID: w18za9y81vhw56c) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:10 - WARNING - 策略 rsi (ID: w18za9y81vhw56c) 将在 5 秒后重试
+2025-05-21 13:52:10 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:52:10 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:10 - ERROR - 策略 rsi (ID: qu7af7gi114dnwe) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:10 - WARNING - 策略 rsi (ID: qu7af7gi114dnwe) 将在 5 秒后重试
+2025-05-21 13:52:11 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:52:11 - INFO - 开始启动数据源...
+2025-05-21 13:52:11 - INFO - 开始监听策略的运行状态...
+2025-05-21 13:52:11 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:11 - ERROR - 策略 rsi (ID: 5v825im2gwb68wt) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:11 - WARNING - 策略 rsi (ID: 5v825im2gwb68wt) 将在 5 秒后重试
+2025-05-21 13:52:15 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:15 - ERROR - 策略 rsi (ID: w18za9y81vhw56c) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:15 - WARNING - 策略 rsi (ID: w18za9y81vhw56c) 将在 5 秒后重试
+2025-05-21 13:52:16 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:16 - ERROR - 策略 rsi (ID: qu7af7gi114dnwe) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:16 - WARNING - 策略 rsi (ID: qu7af7gi114dnwe) 将在 5 秒后重试
+2025-05-21 13:52:16 - ERROR - RSI策略 rsi 执行出错: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:16 - ERROR - 策略 rsi (ID: 5v825im2gwb68wt) 发生错误: Invalid comparison between dtype=datetime64[ns] and time
+2025-05-21 13:52:16 - WARNING - 策略 rsi (ID: 5v825im2gwb68wt) 将在 5 秒后重试
+2025-05-21 13:52:28 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:52:29 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:53:06 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:53:57 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:53:57 - INFO - 开始启动数据源...
+2025-05-21 13:53:57 - INFO - 开始监听策略的运行状态...
+2025-05-21 13:54:13 - INFO - 退出监听
+2025-05-21 13:56:20 - INFO - 找到 3 个活跃的策略
+2025-05-21 13:56:20 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 13:56:24 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 13:56:27 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 13:56:28 - INFO - 开始启动数据源...
+2025-05-21 13:56:28 - INFO - 开始监听策略的运行状态...
+2025-05-21 14:03:57 - INFO - 找到 3 个活跃的策略
+2025-05-21 14:03:57 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 14:03:58 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 14:03:58 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 14:03:58 - INFO - 开始启动数据源...
+2025-05-21 14:03:58 - INFO - 开始监听策略的运行状态...

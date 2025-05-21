@@ -1,19 +1,35 @@
-from abc import ABC, abstractmethod
 import threading
+import pandas as pd
 import time
+from abc import ABC, abstractmethod
+from queue import Queue
 from utils.logger import log
 
 
 class BaseStrategy(ABC):
-    def __init__(self, strategy_id, name, params):
+    def __init__(self, strategy_id, name, params, datafeed):
         self.strategy_id = strategy_id
         self.name = name
-        self.params = params
+        self.datafeed = datafeed
         self._running = False
         self._thread = None
         self._error_count = 10
         self._max_retries = 3  # 最大重试次数
         self._retry_delay = 5  # 重试延迟（秒）
+        self._queue = Queue()
+        self.period = params.get("period", None)
+        self.symbol = params.get("symbol", None)
+        self.min_bars_count = params.get("min_bars_count", 300)
+        self.bars = pd.DataFrame(
+            columns=["datetime", "open", "high", "low", "close", "volume", "amount"]
+        )
+
+        if self.period is None or self.symbol is None:
+            raise ValueError(
+                f"错误: {self.strategy_id} - {self.name} 的 period 和 symbol 是必填参数"
+            )
+
+        self.datafeed.subscribe(self.symbol, self.period, self._on_data_arrived)  # noqa
 
     def start(self):
         """启动策略线程"""
@@ -61,7 +77,63 @@ class BaseStrategy(ABC):
                 )
                 time.sleep(self._retry_delay)
 
-    @abstractmethod
     def run(self):
-        """策略的主要运行逻辑，由具体策略实现"""
+        """策略的主要运行逻辑"""
+        while self._running:
+            try:
+                if self.bars.empty:
+                    self.bars = self.datafeed.load_bars(
+                        self.symbol, self.min_bars_count, self.period
+                    )
+                symbol, period, bar = self._queue.get()
+                self.bars.loc[len(self.bars)] = bar
+                self.bars = self.bars.tail(self.min_bars_count)
+                self.bars = self.bars.reset_index(drop=True)
+                self.on_bar(symbol, period, bar)
+                time.sleep(1)  # 模拟策略执行间隔
+
+            except Exception as e:
+                log(f"RSI策略 {self.name} 执行出错: {str(e)}", "error")
+                raise  # 重新抛出异常，让基类处理重试逻辑
+
+    @abstractmethod
+    def on_bar(self, symbol, period, bar):
+        """处理接收到的K线数据"""
         pass
+
+    def _on_data_arrived(self, symbol, period, bar):
+        """处理接收到的数据"""
+        self._queue.put((symbol, period, bar))
+
+
+class BaseDataFeed(ABC):
+    def __init__(self):
+        self._running = False
+        self._subscribed_handlers = {}
+        self._bars_cache = {}
+
+    @abstractmethod
+    def start(self):
+        pass
+
+    @abstractmethod
+    def stop(self):
+        pass
+
+    def subscribe(self, symbol, period, handler):
+        if symbol not in self._subscribed_handlers:
+            self._subscribed_handlers[symbol] = {period: []}
+            self._bars_cache[symbol] = {period: []}
+        elif period not in self._subscribed_handlers[symbol]:
+            self._subscribed_handlers[symbol][period] = []
+            self._bars_cache[symbol][period] = []
+
+        self._subscribed_handlers[symbol][period].append(handler)
+
+    @property
+    def running(self):
+        return self._running
+
+    @running.setter
+    def running(self, value):
+        self._running = value

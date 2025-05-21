@@ -38,3 +38,162 @@
 2025-05-20 09:24:10 - INFO - 正在运行的策略数量：0
 2025-05-20 09:24:24 - INFO - 启动策略: hi mom - test (id=w18za9y81vhw56c)
 2025-05-20 09:24:24 - INFO - 正在运行的策略数量：1
+2025-05-20 16:17:22 - INFO - 找到 1 个活跃的策略
+2025-05-20 16:17:23 - INFO - 启动策略: test (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 16:17:23 - ERROR - 启动策略失败: StrategyFactory.create_strategy() takes 3 positional arguments but 4 were given
+2025-05-20 16:17:23 - INFO - 开始监听策略的运行状态...
+2025-05-20 21:38:26 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:38:26 - INFO - 启动策略: test (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 21:38:26 - ERROR - 启动策略失败: StrategyFactory.create_strategy() takes 3 positional arguments but 4 were given
+2025-05-20 21:38:26 - INFO - 开始监听策略的运行状态...
+2025-05-20 21:39:12 - INFO - 退出监听
+2025-05-20 21:40:02 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:40:02 - INFO - 启动策略: test (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 21:40:02 - ERROR - 启动策略失败: StrategyFactory.create_strategy() takes 3 positional arguments but 4 were given
+2025-05-20 21:40:02 - INFO - 开始监听策略的运行状态...
+2025-05-20 21:40:05 - INFO - 退出监听
+2025-05-20 21:52:11 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:52:12 - INFO - 启动策略: test (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 21:52:48 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:52:49 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 21:53:57 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:53:57 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 21:53:57 - ERROR - 启动策略失败: StrategyFactory.create_strategy() takes 4 positional arguments but 5 were given
+2025-05-20 21:53:57 - INFO - 开始监听策略的运行状态...
+2025-05-20 21:55:21 - INFO - 找到 1 个活跃的策略
+2025-05-20 21:55:21 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 22:00:25 - INFO - 找到 1 个活跃的策略
+2025-05-20 22:00:26 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 22:00:26 - ERROR - 启动策略失败: 'NoneType' object has no attribute 'get'
+2025-05-20 22:00:26 - INFO - 开始监听策略的运行状态...
+2025-05-20 22:01:02 - INFO - 找到 1 个活跃的策略
+2025-05-20 22:01:03 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 22:02:07 - INFO - 找到 1 个活跃的策略
+2025-05-20 22:02:08 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-20 22:03:21 - INFO - 开始监听策略的运行状态...
+2025-05-20 22:03:21 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:23 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:24 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:25 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:26 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:27 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:28 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:29 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:30 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:31 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:32 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:33 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:34 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:35 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:36 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:37 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:38 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:39 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:40 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:41 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:42 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:43 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:44 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:45 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:46 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:47 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:48 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:49 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:50 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:51 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:52 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:53 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:54 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:55 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:56 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:57 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:58 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:03:59 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:00 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:01 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:02 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:03 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:04 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:05 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:06 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:07 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:08 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:09 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:10 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:11 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:12 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:13 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:14 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:15 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:16 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:17 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:18 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:19 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:20 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:21 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:22 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:23 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:24 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:25 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:26 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:27 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:28 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:29 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:30 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:31 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:32 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:33 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:34 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:35 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:36 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:37 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:38 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:39 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:40 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:41 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:42 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:43 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:44 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:45 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:46 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:47 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:48 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:49 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:50 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:51 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:52 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:53 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:54 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:55 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:56 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:57 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:58 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:04:59 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:00 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:01 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:02 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:03 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:04 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:05 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:06 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:07 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:08 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:09 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:10 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:11 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:12 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:13 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:14 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:15 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:16 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:17 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:18 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:19 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:20 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:21 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:22 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:23 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:24 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:25 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:26 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT
+2025-05-20 22:05:27 - INFO - RSI策略 rsi 正在运行 - 交易对: BTC/USDT

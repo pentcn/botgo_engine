@@ -1,13 +1,17 @@
+import threading
 from utils.pb_client import get_pb_client
 from pocketbase.services.realtime_service import MessageData
 from utils.logger import log
 from .factory import StrategyFactory
-import threading
+from .dolphindb_datafeed import DolphinDBDataFeed
+from utils.config import load_market_db_config, load_history_db_config
 
 # 用于保存当前已启动的策略实例
 running_strategies = {}
 # 用于保护running_strategies的锁
 _strategies_lock = threading.Lock()
+# 数据源
+datafeed = None
 
 
 def get_user_name(user_id):
@@ -21,14 +25,14 @@ def get_user_name(user_id):
         return "未知用户"
 
 
-def start_strategy(strategy):
+def start_strategy(strategy, datafeed):
     try:
         user_name = get_user_name(strategy.user)
         log(f"启动策略: {strategy.name} (用户: {user_name}, id={strategy.id})")
 
         # 创建策略实例
         strategy_instance = StrategyFactory.create_strategy(
-            strategy.id, strategy.name, strategy.params
+            datafeed, strategy.id, strategy.name, strategy.params
         )
 
         # 启动策略
@@ -64,13 +68,13 @@ def on_strategy_event(e: MessageData):
         return
     if record.active:
         if record.id not in running_strategies:
-            start_strategy(record)
+            start_strategy(record, datafeed)
     else:
         if record.id in running_strategies:
             stop_strategy(record)
 
 
-def start_active_strategies():
+def start_active_strategies(datafeed):
     """启动所有活跃的策略"""
     client = get_pb_client()
     service = client.collection("strategies")
@@ -78,7 +82,7 @@ def start_active_strategies():
     try:
         # 获取所有活跃的策略，并展开用户关系
         active_strategies = service.get_list(
-            1, 100, {"filter": "active = true", "expand": "user"}
+            1, 1000, {"filter": "active = true", "expand": "user"}
         )
 
         if not active_strategies.items:
@@ -90,18 +94,26 @@ def start_active_strategies():
         # 启动每个活跃的策略
         for strategy in active_strategies.items:
             if strategy.id not in running_strategies:
-                start_strategy(strategy)
+                start_strategy(strategy, datafeed)
 
     except Exception as e:
         log(f"启动活跃策略时发生错误: {str(e)}", "error")
 
 
 def monitor_strategies():
+    global datafeed
+    datafeed = DolphinDBDataFeed(
+        load_history_db_config(), load_market_db_config()
+    )  # noqa
+
     client = get_pb_client()
     service = client.collection("strategies")
 
     # 首先启动所有活跃的策略
-    start_active_strategies()
+    start_active_strategies(datafeed)
+
+    log("开始启动数据源...")
+    datafeed.start()
 
     log("开始监听策略的运行状态...")
     service.subscribe(on_strategy_event)
@@ -114,4 +126,5 @@ def monitor_strategies():
             time.sleep(1)
     except KeyboardInterrupt:
         log("退出监听")
+        datafeed.stop()
         service.unsubscribe()
