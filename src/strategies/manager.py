@@ -101,12 +101,13 @@ def start_active_strategies(datafeed):
 
 
 def monitor_strategies():
+    client = get_pb_client()
+
     global datafeed
     datafeed = DolphinDBDataFeed(
-        load_history_db_config(), load_market_db_config()
+        load_history_db_config(), load_market_db_config(), client
     )  # noqa
 
-    client = get_pb_client()
     service = client.collection("strategies")
 
     # 首先启动所有活跃的策略

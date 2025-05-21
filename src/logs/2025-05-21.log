@@ -377,3 +377,69 @@
 2025-05-21 14:03:58 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
 2025-05-21 14:03:58 - INFO - 开始启动数据源...
 2025-05-21 14:03:58 - INFO - 开始监听策略的运行状态...
+2025-05-21 14:58:28 - INFO - 找到 3 个活跃的策略
+2025-05-21 14:58:28 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 14:58:29 - INFO - 启动策略: rsi (用户: hi mom, id=qu7af7gi114dnwe)
+2025-05-21 14:58:30 - INFO - 启动策略: rsi (用户: test1, id=5v825im2gwb68wt)
+2025-05-21 14:58:30 - INFO - 开始启动数据源...
+2025-05-21 14:58:30 - INFO - 开始监听策略的运行状态...
+2025-05-21 15:23:11 - INFO - 找到 3 个活跃的策略
+2025-05-21 15:23:12 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 15:25:18 - INFO - 找到 3 个活跃的策略
+2025-05-21 15:25:19 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 15:33:10 - INFO - 找到 3 个活跃的策略
+2025-05-21 15:33:10 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 15:48:24 - INFO - 找到 3 个活跃的策略
+2025-05-21 15:48:24 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 15:49:18 - INFO - 找到 3 个活跃的策略
+2025-05-21 15:49:18 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 19:02:44 - INFO - 找到 2 个活跃的策略
+2025-05-21 19:02:44 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 19:09:03 - INFO - 找到 2 个活跃的策略
+2025-05-21 19:09:04 - INFO - 启动策略: rsi (用户: hi mom, id=w18za9y81vhw56c)
+2025-05-21 19:27:29 - INFO - 找到 1 个活跃的策略
+2025-05-21 19:27:30 - INFO - 启动策略: wangba (用户: test1, id=7416w114037s7c8)
+2025-05-21 19:27:30 - INFO - 开始启动数据源...
+2025-05-21 19:27:30 - INFO - 开始监听策略的运行状态...
+2025-05-21 19:30:18 - INFO - 找到 1 个活跃的策略
+2025-05-21 19:30:19 - INFO - 启动策略: wangba (用户: test1, id=7416w114037s7c8)
+2025-05-21 19:30:19 - INFO - 开始启动数据源...
+2025-05-21 19:30:19 - INFO - 开始监听策略的运行状态...
+2025-05-21 20:50:39 - INFO - 找到 1 个活跃的策略
+2025-05-21 20:50:39 - INFO - 启动策略: wangba (用户: test1, id=7416w114037s7c8)
+2025-05-21 20:50:39 - INFO - 开始启动数据源...
+2025-05-21 20:50:39 - INFO - 开始监听策略的运行状态...
+2025-05-21 20:50:39 - ERROR - RSI策略 wangba 执行出错: Message: Response error. Status code:404
+URL: http://127.0.0.1:8090/api/collections/strategyPosition/records?filter=strategy%3D%227416w114037s7c8%22&page=1&perPage=1000
+Status: 404
+Data: {'data': {}, 'message': 'Missing collection context.', 'status': 404}
+Is Abort: False
+Original Error: N/A
+2025-05-21 20:50:39 - ERROR - 策略 wangba (ID: 7416w114037s7c8) 发生错误: Message: Response error. Status code:404
+URL: http://127.0.0.1:8090/api/collections/strategyPosition/records?filter=strategy%3D%227416w114037s7c8%22&page=1&perPage=1000
+Status: 404
+Data: {'data': {}, 'message': 'Missing collection context.', 'status': 404}
+Is Abort: False
+Original Error: N/A
+2025-05-21 20:50:39 - WARNING - 策略 wangba (ID: 7416w114037s7c8) 将在 5 秒后重试
+2025-05-21 20:50:44 - ERROR - RSI策略 wangba 执行出错: Message: Response error. Status code:404
+URL: http://127.0.0.1:8090/api/collections/strategyPosition/records?filter=strategy%3D%227416w114037s7c8%22&page=1&perPage=1000
+Status: 404
+Data: {'data': {}, 'message': 'Missing collection context.', 'status': 404}
+Is Abort: False
+Original Error: N/A
+2025-05-21 20:50:44 - ERROR - 策略 wangba (ID: 7416w114037s7c8) 发生错误: Message: Response error. Status code:404
+URL: http://127.0.0.1:8090/api/collections/strategyPosition/records?filter=strategy%3D%227416w114037s7c8%22&page=1&perPage=1000
+Status: 404
+Data: {'data': {}, 'message': 'Missing collection context.', 'status': 404}
+Is Abort: False
+Original Error: N/A
+2025-05-21 20:50:44 - WARNING - 策略 wangba (ID: 7416w114037s7c8) 将在 5 秒后重试
+2025-05-21 20:51:08 - INFO - 找到 1 个活跃的策略
+2025-05-21 20:51:08 - INFO - 启动策略: wangba (用户: test1, id=7416w114037s7c8)
+2025-05-21 20:51:08 - INFO - 开始启动数据源...
+2025-05-21 20:51:08 - INFO - 开始监听策略的运行状态...
+2025-05-21 20:52:13 - INFO - 找到 1 个活跃的策略
+2025-05-21 20:52:14 - INFO - 启动策略: wangba (用户: test1, id=7416w114037s7c8)
+2025-05-21 20:52:14 - INFO - 开始启动数据源...
+2025-05-21 20:52:14 - INFO - 开始监听策略的运行状态...

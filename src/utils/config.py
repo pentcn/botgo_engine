@@ -33,4 +33,5 @@ def load_market_db_config():
         "DB_NAME": os.getenv("MARKET_DATABASE_NAME"),
         "OPTION_CONTRACT_TABLE": os.getenv("MARKET_INSTRUMENTTABLE_NAME"),
         "STREAM_BAR_TABLE": os.getenv("MARKET_STREAM_BAR_NAME"),
+        "TICK_TABLE": os.getenv("MARKET_STREAM_TICK_NAME"),
     }

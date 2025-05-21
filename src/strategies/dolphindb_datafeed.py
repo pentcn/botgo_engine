@@ -7,13 +7,14 @@ from utils.common import generate_action_name
 
 class DolphinDBDataFeed(BaseDataFeed):
 
-    def __init__(self, history_db_config, market_db_config):
+    def __init__(self, history_db_config, market_db_config, client):
         super().__init__()
         self.history_db_config = history_db_config
         self.market_db_config = market_db_config
         self.instruments = None
         self.conn = None
         self.handler_id = generate_action_name(6)
+        self.client = client
 
     def load_history_minute_bars(self, symbol, count, period=1):
         conn = ddb.session()
@@ -94,6 +95,26 @@ class DolphinDBDataFeed(BaseDataFeed):
         conn.close()
         return df
 
+    def get_last_tick(self, symbol):
+        conn = ddb.session()
+        conn.connect(
+            self.market_db_config["DB_HOST"],
+            self.market_db_config["DB_PORT"],
+            self.market_db_config["DB_USER"],
+            self.market_db_config["DB_PASSWORD"],
+        )
+        sql = f"""
+                select *
+                from {self.market_db_config["TICK_TABLE"]}
+                where symbol = '{symbol}'
+                order by time desc limit 1
+                """
+        df = conn.run(sql)
+        conn.close()
+        if len(df) == 0:
+            return None
+        return df.to_dict("records")[0]
+
     def load_bars(self, symbol, count, period=1):
         history_bars = self.load_history_minute_bars(symbol, count, period)
         active_bars = self.load_active_minute_bars(symbol, period)
@@ -131,6 +152,22 @@ class DolphinDBDataFeed(BaseDataFeed):
             actionName=self.handler_id,
         )
         self.conn.close()
+
+    def get_strategy_account(self, strategy_id):
+        records = self.client.collection("strategyAccount").get_list(
+            1, 20, {"filter": f'strategy="{strategy_id}"'}
+        )
+        if len(records.items) == 0:
+            return None
+        return records.items[0]
+
+    def get_strategy_positions(self, strategy_id):
+        records = self.client.collection("strategyPositions").get_list(
+            1, 1000, {"filter": f'strategy="{strategy_id}"'}
+        )
+        if len(records.items) == 0:
+            return None
+        return records.items
 
     def _on_data_arrived(self, bar_data):
         symbol = bar_data[1]

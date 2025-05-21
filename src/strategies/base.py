@@ -4,6 +4,8 @@ import time
 from abc import ABC, abstractmethod
 from queue import Queue
 from utils.logger import log
+from utils.common import DataFrameWrapper
+from utils.trade_calendar import TradeCalendar
 
 
 class BaseStrategy(ABC):
@@ -20,9 +22,20 @@ class BaseStrategy(ABC):
         self.period = params.get("period", None)
         self.symbol = params.get("symbol", None)
         self.min_bars_count = params.get("min_bars_count", 300)
-        self.bars = pd.DataFrame(
-            columns=["datetime", "open", "high", "low", "close", "volume", "amount"]
+        self.bars = DataFrameWrapper(
+            pd.DataFrame(
+                columns=[
+                    "datetime",
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "volume",
+                    "amount",
+                ]  # noqa
+            )
         )
+        # self.bars = DataFrameWrapper(self._bars)
 
         if self.period is None or self.symbol is None:
             raise ValueError(
@@ -30,6 +43,8 @@ class BaseStrategy(ABC):
             )
 
         self.datafeed.subscribe(self.symbol, self.period, self._on_data_arrived)  # noqa
+        self.strategy_account = None
+        self.strategy_positions = None
 
     def start(self):
         """启动策略线程"""
@@ -82,13 +97,21 @@ class BaseStrategy(ABC):
         while self._running:
             try:
                 if self.bars.empty:
-                    self.bars = self.datafeed.load_bars(
+                    self.bars._df = self.datafeed.load_bars(
                         self.symbol, self.min_bars_count, self.period
                     )
+                if self.strategy_account is None:
+                    self.strategy_account = self.datafeed.get_strategy_account(
+                        self.strategy_id
+                    )
+                if self.strategy_positions is None:
+                    self.strategy_positions = self.datafeed.get_strategy_positions(
+                        self.strategy_id
+                    )  # noqa
                 symbol, period, bar = self._queue.get()
-                self.bars.loc[len(self.bars)] = bar
-                self.bars = self.bars.tail(self.min_bars_count)
-                self.bars = self.bars.reset_index(drop=True)
+                self.bars._df.loc[len(self.bars._df)] = bar
+                self.bars._df = self.bars._df.tail(self.min_bars_count)
+                self.bars._df = self.bars._df.reset_index(drop=True)
                 self.on_bar(symbol, period, bar)
                 time.sleep(1)  # 模拟策略执行间隔
 
@@ -111,6 +134,7 @@ class BaseDataFeed(ABC):
         self._running = False
         self._subscribed_handlers = {}
         self._bars_cache = {}
+        self.trade_calendar = TradeCalendar()
 
     @abstractmethod
     def start(self):

@@ -3,7 +3,7 @@ from pandas_ta import macd, atr
 from indicators.dsrt import DSRT
 
 
-class RSIStrategy(BaseStrategy):
+class WangBaStrategy(BaseStrategy):
     def __init__(self, datafeed, strategy_id, name, params):
         super().__init__(strategy_id, name, params, datafeed)
         self.overbought = params.get("overbought", 70)

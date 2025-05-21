@@ -1,12 +1,14 @@
 # from utils.logger import log
 from .implementations.moving_average import MovingAverageStrategy
 from .implementations.rsi import RSIStrategy
+from .implementations.wangba import WangBaStrategy
 
 
 class StrategyFactory:
     _strategies = {
         "moving_average": MovingAverageStrategy,
         "rsi": RSIStrategy,
+        "wangba": WangBaStrategy,
     }
 
     @classmethod
