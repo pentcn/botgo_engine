@@ -84,7 +84,20 @@ class TradeCalendar:
         fourth_wed = first_wed + timedelta(days=21)
         return date(year, month, fourth_wed.day)
 
+    def get_pre_trade_date(self, date):
+        return (
+            self.trade_dates.loc[
+                self.trade_dates["trade_date"].dt.date < date, "trade_date"
+            ]
+            .max()
+            .date()
+        )
+
+    def is_trade_date(self, date):
+        return date in self.trade_dates["trade_date"].dt.date.tolist()
+
 
 if __name__ == "__main__":
     trade_calendar = TradeCalendar()
     print(trade_calendar.trade_dates)
+    print(trade_calendar.get_pre_trade_date(datetime.now().date()))

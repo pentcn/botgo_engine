@@ -1,6 +1,6 @@
 import dolphindb as ddb
 import pandas as pd
-from datetime import time
+from datetime import time, datetime
 from .base import BaseDataFeed
 from utils.common import generate_action_name
 
@@ -115,6 +115,32 @@ class DolphinDBDataFeed(BaseDataFeed):
             return None
         return df.to_dict("records")[0]
 
+    def get_last_ticks(self, symbols):
+        conn = ddb.session()
+        conn.connect(
+            self.market_db_config["DB_HOST"],
+            self.market_db_config["DB_PORT"],
+            self.market_db_config["DB_USER"],
+            self.market_db_config["DB_PASSWORD"],
+        )
+        symbols_str = ",".join([f"'{symbol}'" for symbol in symbols])
+        sql = f"""
+            SELECT *
+            FROM (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY time DESC) AS rn
+            FROM tick
+            WHERE symbol IN  ({symbols_str})
+            ) AS tmp
+            WHERE rn = 1
+            """
+        df = conn.run(sql)
+        conn.close()
+        if len(df) == 0:
+            return None
+        return df.to_dict("records")[0]
+
     def load_bars(self, symbol, count, period=1):
         history_bars = self.load_history_minute_bars(symbol, count, period)
         active_bars = self.load_active_minute_bars(symbol, period)
@@ -161,13 +187,79 @@ class DolphinDBDataFeed(BaseDataFeed):
             return None
         return records.items[0]
 
-    def get_strategy_positions(self, strategy_id):
+    def get_strategy_positions(
+        self, strategy_id, query_date=datetime.now().date()
+    ):  # noqa
+        query_date = query_date.strftime("%Y-%m-%d")
+        records = self.client.collection("strategyPositions").get_full_list(
+            -1,
+            {
+                "filter": f'strategy="{strategy_id}" && created >= "{query_date}"'  # noqa
+            },  # noqa
+        )
+        if len(records) == 0:
+            return []
+        return records
+
+    def get_combinations_positions(self, strategy_id, query_date=datetime.now().date()):
+        records = self.client.collection("strategyCombinations").get_full_list(
+            -1, {"filter": f'strategy="{strategy_id}" && created >= "{query_date}"'}
+        )
+        if len(records) == 0:
+            return []
+        return records
+
+    def save_strategy_position(
+        self,
+        strategy_id,
+        instrument_id,
+        instrument_name,
+        direction,
+        volume,
+        open_price,  # noqa
+    ):
+        self.client.collection("strategyPositions").create(
+            {
+                "strategy": strategy_id,
+                "instrumentId": instrument_id,
+                "instrumentName": instrument_name,
+                "direction": direction,
+                "volume": volume,
+                "openPrice": open_price,
+            }
+        )
+
+    def save_strategy_combinations(
+        self,
+        strategy_id,
+        instrument_id,
+        instrument_name,
+        volume,
+    ):
+        self.client.collection("strategyCombinations").create(
+            {
+                "strategy": strategy_id,
+                "instrumentId": instrument_id,
+                "instrumentName": instrument_name,
+                "volume": volume,
+            }
+        )
+
+    def get_last_strategy_positions_date(self, strategy_id):
         records = self.client.collection("strategyPositions").get_list(
-            1, 1000, {"filter": f'strategy="{strategy_id}"'}
+            1, 1, {"filter": f'strategy="{strategy_id}"', "sort": "-created"}
         )
         if len(records.items) == 0:
             return None
-        return records.items
+        return records.items[-1].created.date()
+
+    def get_last_strategy_combinations_date(self, strategy_id):
+        records = self.client.collection("strategyCombinations").get_list(
+            1, 1, {"filter": f'strategy="{strategy_id}"', "sort": "-created"}
+        )
+        if len(records.items) == 0:
+            return None
+        return records.items[-1].created.date()
 
     def _on_data_arrived(self, bar_data):
         symbol = bar_data[1]

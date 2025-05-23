@@ -2,9 +2,10 @@ import threading
 import pandas as pd
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from queue import Queue
 from utils.logger import log
-from utils.common import DataFrameWrapper
+from utils.common import DataFrameWrapper, record2dataframe
 from utils.trade_calendar import TradeCalendar
 
 
@@ -15,10 +16,12 @@ class BaseStrategy(ABC):
         self.datafeed = datafeed
         self._running = False
         self._thread = None
+        self._deal_thread = None  # 新增交易信息处理线程
         self._error_count = 10
         self._max_retries = 3  # 最大重试次数
         self._retry_delay = 5  # 重试延迟（秒）
-        self._queue = Queue()
+        self._queue = Queue()  # K线的队列
+        self._deal_queue = Queue()  # 交易信息的队列
         self.period = params.get("period", None)
         self.symbol = params.get("symbol", None)
         self.min_bars_count = params.get("min_bars_count", 300)
@@ -45,6 +48,7 @@ class BaseStrategy(ABC):
         self.datafeed.subscribe(self.symbol, self.period, self._on_data_arrived)  # noqa
         self.strategy_account = None
         self.strategy_positions = None
+        self.strategy_combinations = None
 
     def start(self):
         """启动策略线程"""
@@ -52,16 +56,24 @@ class BaseStrategy(ABC):
             return
 
         self._running = True
+        # 启动主策略线程
         self._thread = threading.Thread(target=self._run_with_error_handling)
-        self._thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
+        self._thread.daemon = True
+
+        # 启动交易信息处理线程
+        self._deal_thread = threading.Thread(target=self._run_deal_processor)
+        self._deal_thread.daemon = True
+
         self._thread.start()
-        # log(f"策略 {self.name} (ID: {self.strategy_id}) 已启动")
+        self._deal_thread.start()
 
     def stop(self):
         """停止策略线程"""
         self._running = False
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=5)  # 等待线程结束，最多等待5秒
+            self._thread.join(timeout=5)
+        if self._deal_thread and self._deal_thread.is_alive():
+            self._deal_thread.join(timeout=5)
         # log(f"策略 {self.name} (ID: {self.strategy_id}) 已停止")
 
     def _run_with_error_handling(self):
@@ -92,6 +104,21 @@ class BaseStrategy(ABC):
                 )
                 time.sleep(self._retry_delay)
 
+    def _run_deal_processor(self):
+        """交易信息处理线程"""
+        while self._running:
+            try:
+                # 使用get_nowait()避免阻塞，如果队列为空则继续循环
+                deal_info = self._deal_queue.get()
+                self._update_strategy_info(deal_info)
+                self.on_deal(deal_info)
+                time.sleep(0.1)
+
+            except Exception as e:
+                log(f"策略 {self.name} 处理交易信息时出错: {str(e)}", "error")
+                # 这里可以选择是否要重试，因为交易信息处理失败通常不需要重试
+                continue
+
     def run(self):
         """策略的主要运行逻辑"""
         while self._running:
@@ -105,28 +132,69 @@ class BaseStrategy(ABC):
                         self.strategy_id
                     )
                 if self.strategy_positions is None:
-                    self.strategy_positions = self.datafeed.get_strategy_positions(
-                        self.strategy_id
-                    )  # noqa
-                symbol, period, bar = self._queue.get()
+                    self.strategy_positions = StrategyPosition(self)  # noqa
+                    self.strategy_positions.refresh()
+                if self.strategy_combinations is None:
+                    self.strategy_combinations = StrategyCombination(self)  # noqa
+                    self.strategy_combinations.refresh()
+
+                # 处理K线数据
+                symbol, period, bar = (
+                    self._queue.get()
+                )  # 这里可以保持阻塞，因为K线是按周期产生的
                 self.bars._df.loc[len(self.bars._df)] = bar
                 self.bars._df = self.bars._df.tail(self.min_bars_count)
                 self.bars._df = self.bars._df.reset_index(drop=True)
                 self.on_bar(symbol, period, bar)
-                time.sleep(1)  # 模拟策略执行间隔
 
             except Exception as e:
-                log(f"RSI策略 {self.name} 执行出错: {str(e)}", "error")
-                raise  # 重新抛出异常，让基类处理重试逻辑
+                log(f"策略 {self.name} 执行出错: {str(e)}", "error")
+                raise
 
     @abstractmethod
     def on_bar(self, symbol, period, bar):
         """处理接收到的K线数据"""
         pass
 
+    @abstractmethod
+    def on_deal(self, deal_info):
+        """处理接收到的交易信息"""
+        pass
+
+    def _update_strategy_info(self, deal_record):
+        if "/" in deal_record.instrument_id:
+            if deal_record.direction == 48:  # 拆分组合
+                self.strategy_combinations.release(
+                    deal_record.instrument_id,
+                    deal_record.instrument_name,
+                    deal_record.volume,
+                )
+            elif deal_record.direction == 49:  # 合并组合
+                self.strategy_combinations.combine(
+                    deal_record.instrument_id,
+                    deal_record.instrument_name,
+                    deal_record.volume,
+                )
+        else:
+            ...
+
+    def update_combinations(self): ...
+
+    def update_positions(self): ...
     def _on_data_arrived(self, symbol, period, bar):
         """处理接收到的数据"""
         self._queue.put((symbol, period, bar))
+
+    def _on_deal_arrived(self, deal_info):
+        """处理接收到的交易信息"""
+        self._deal_queue.put(deal_info)
+
+    @staticmethod
+    def parse_deal_remark(remark):
+        if remark == "":
+            return {}
+        info = remark.split(".")
+        return {"strategy_id": info[0]}
 
 
 class BaseDataFeed(ABC):
@@ -161,3 +229,178 @@ class BaseDataFeed(ABC):
     @running.setter
     def running(self, value):
         self._running = value
+
+
+class StrategyPosition:
+
+    def __init__(self, strategy):
+
+        self.strategy = strategy
+        self.datafeed = strategy.datafeed
+        self.positions = pd.DataFrame()
+
+    def refresh(self):
+        today = datetime.now().date()
+        # 获取当天的所有持仓记录，如果不存在，则获取最近交易日的持仓记录
+        positions = self.datafeed.get_strategy_positions(
+            self.strategy.strategy_id, today
+        )
+        if positions == []:
+            last_trade_date = self.datafeed.get_last_strategy_positions_date(
+                self.strategy.strategy_id
+            )
+            if last_trade_date is None:
+                return
+            positions = self.datafeed.get_strategy_positions(
+                self.strategy.strategy_id, last_trade_date
+            )
+        # 过滤持仓记录，仅仅保留相同标的和持仓方向的最新记录，这就是最新的持仓
+        positions_df = record2dataframe(positions)
+        positions_df = positions_df.sort_values(by="created")
+        idx = positions_df.groupby(["instrumentId", "direction"])[
+            "created"
+        ].idxmax()  # noqa
+        df = positions_df.loc[idx]
+        df = df.sort_values(by="created")
+        self.positions = df.reset_index(drop=True)
+
+        # 如果当天是交易日，却没有持仓记录，则保存最新持仓
+        if (
+            self.datafeed.trade_calendar.is_trade_date(today)
+            and self.positions.iloc[0]["created"].date() != today
+        ):
+            self.save()
+
+    def save(self):
+        for _, row in self.positions.iterrows():
+            self.datafeed.save_strategy_position(
+                self.strategy.strategy_id,
+                row["instrument_id"],
+                row["instrument_name"],
+                row["direction"],
+                row["volume"],
+                row["open_price"],
+            )
+
+
+class StrategyCombination:
+
+    def __init__(self, strategy):
+
+        self.strategy = strategy
+        self.datafeed = strategy.datafeed
+        self.combinations = pd.DataFrame()
+
+    def refresh(self):
+        today = datetime.now().date()
+        # 获取当天的所有持仓记录，如果不存在，则获取最近交易日的持仓记录
+        combinations = self.datafeed.get_combinations_positions(
+            self.strategy.strategy_id, today
+        )
+        if combinations == []:
+            last_trade_date = self.datafeed.get_last_strategy_combinations_date(  # noqa
+                self.strategy.strategy_id
+            )
+            if last_trade_date is None:
+                return
+            combinations = self.datafeed.get_combinations_positions(
+                self.strategy.strategy_id, last_trade_date
+            )
+        # 过滤持仓记录，仅仅保留相同标的和持仓方向的最新记录，这就是最新的持仓
+        combinations_df = record2dataframe(combinations)
+        combinations_df = combinations_df.sort_values(by="created")
+        idx = combinations_df.groupby(["instrument_id"])["created"].idxmax()  # noqa
+        df = combinations_df.loc[idx]
+        df = df.sort_values(by="created")
+        self.combinations = df.reset_index(drop=True)
+
+        # 如果当天是交易日，却没有持仓记录，则保存最新持仓
+        if (
+            self.datafeed.trade_calendar.is_trade_date(today)
+            and self.combinations.iloc[0]["created"].date() != today
+        ):
+            self.save()
+
+    def save(self):
+        for _, row in self.combinations.iterrows():
+            self.datafeed.save_strategy_combinations(
+                self.strategy.strategy_id,
+                row["instrument_id"],
+                row["instrument_name"],
+                row["volume"],
+            )
+
+    def release(self, instrument_id, instrument_name, volume):
+        if self.combinations.empty:
+            return
+
+        existing_combination = self.combinations[
+            self.combinations["instrument_id"] == instrument_id
+        ]
+        if existing_combination.empty:
+            return
+        existing_combination_volume = int(existing_combination.iloc[0]["volume"])
+        new_volume = existing_combination_volume - volume
+        self.combinations.loc[existing_combination.index[0], "volume"] = new_volume
+        self.datafeed.save_strategy_combinations(
+            self.strategy.strategy_id,
+            instrument_id,
+            instrument_name,
+            new_volume,
+        )
+
+    def combine(self, instrument_id, instrument_name, volume):
+        if self.combinations.empty:
+            existing_combination = pd.DataFrame()
+        else:
+            existing_combination = self.combinations[
+                self.combinations["instrument_id"] == instrument_id
+            ]
+        if existing_combination.empty:
+            combination = {
+                "strategy": self.strategy.strategy_id,
+                "instrument_id": instrument_id,
+                "instrument_name": instrument_name,
+                "volume": volume,
+            }
+            if self.combinations.empty:
+                self.combinations = pd.DataFrame([combination])
+            else:
+                self.combinations.loc[len(self.combinations)] = combination
+            self.datafeed.save_strategy_combinations(
+                self.strategy.strategy_id,
+                instrument_id,
+                instrument_name,
+                volume,
+            )
+        else:
+            existing_combination_volume = int(existing_combination.iloc[0]["volume"])
+            new_volume = existing_combination_volume + volume
+            self.combinations.loc[existing_combination.index[0], "volume"] = new_volume
+            self.datafeed.save_strategy_combinations(
+                self.strategy.strategy_id,
+                instrument_id,
+                instrument_name,
+                new_volume,
+            )
+
+
+if __name__ == "__main__":
+    from utils.pb_client import get_pb_client
+    from utils.config import load_market_db_config, load_history_db_config
+    from strategies.dolphindb_datafeed import DolphinDBDataFeed
+
+    client = get_pb_client()
+
+    global datafeed
+    datafeed = DolphinDBDataFeed(
+        load_history_db_config(), load_market_db_config(), client
+    )  # noqa
+
+    class DemoStrategy:
+
+        def __init__(self):
+            self.strategy_id = "7416w114037s7c8"
+
+    positions = StrategyPosition(DemoStrategy(), datafeed)
+    positions.refresh()

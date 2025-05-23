@@ -1,5 +1,6 @@
 import secrets
 import string
+import pandas as pd
 
 
 def generate_action_name(length=12):
@@ -13,6 +14,33 @@ def generate_action_name(length=12):
     rest_chars = "".join(secrets.choice(valid_chars) for _ in range(length - 1))
 
     return first_char + rest_chars
+
+
+def record2dataframe(records):
+    values = []
+    for record in records:
+        record_dict = {
+            name: getattr(record, name)
+            for name in dir(record)
+            if (
+                not name.startswith("_")
+                and not name
+                in [
+                    "collection_id",
+                    "collection_name",
+                    "is_new",
+                    "load",
+                    "load_expanded",
+                    "parse_expanded",
+                    "expand",
+                ]
+            )
+        }
+        values.append(record_dict)
+    if len(values) == 0:
+        return pd.DataFrame()
+
+    return pd.DataFrame(values)
 
 
 class DataFrameWrapper:

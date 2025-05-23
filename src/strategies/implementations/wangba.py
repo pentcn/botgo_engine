@@ -17,7 +17,12 @@ class WangBaStrategy(BaseStrategy):
             self.bars[-1].datetime,
             self.bars[-1].close,  # noqa
         )
-        dsrt = DSRT(self.bars.close, self.bars.high, self.bars.low)
-        macd_hist = macd(self.bars.close)["MACDh_12_26_9"]
-        atr_value = atr(self.bars.high, self.bars.low, self.bars.close, length=14)
+        dsrt = list(DSRT(self.bars.close, self.bars.high, self.bars.low))
+        macd_hist = list(macd(self.bars.close)["MACDh_12_26_9"])
+        atr_value = list(
+            atr(self.bars.high, self.bars.low, self.bars.close, length=14)
+        )  # noqa
         print(dsrt[-1], macd_hist[-1], atr_value[-1])
+
+    def on_deal(self, deal_info):
+        print(deal_info)
