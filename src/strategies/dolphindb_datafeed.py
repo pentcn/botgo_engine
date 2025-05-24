@@ -220,6 +220,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         direction,
         volume,
         open_price,  # noqa
+        commission,
     ):
         self.client.collection("strategyPositions").create(
             {
@@ -229,6 +230,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "direction": direction,
                 "volume": volume,
                 "openPrice": open_price,
+                "commission": commission,
             }
         )
 

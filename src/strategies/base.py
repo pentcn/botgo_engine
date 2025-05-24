@@ -7,6 +7,7 @@ from queue import Queue
 from utils.logger import log
 from utils.common import DataFrameWrapper, record2dataframe
 from utils.trade_calendar import TradeCalendar
+import numpy as np
 
 
 class BaseStrategy(ABC):
@@ -194,9 +195,9 @@ class BaseStrategy(ABC):
                 )
             elif deal_record.offset_flag == 49:  # 平仓
                 if deal_record.direction == 48:  # 买入
-                    direction = 1
+                    direction = -1  # 针对义务仓
                 elif deal_record.direction == 49:  # 卖出
-                    direction = -1
+                    direction = 1  # 针对权利仓
                 self.strategy_positions.close(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
@@ -311,11 +312,97 @@ class StrategyPosition:
 
     def open(
         self, instrument_id, instrument_name, volume, price, direction, commission
-    ): ...
+    ):
+        self.positions = self.positions.reset_index(drop=True)
+        # now = datetime.now()
+        mask = (self.positions["instrument_id"] == instrument_id) & (
+            self.positions["direction"] == direction
+        )
+        idxs = np.where(mask)[0]
+        if len(idxs) == 0:
+            # 新增持仓
+            new_position = {
+                "instrument_id": instrument_id,
+                "instrument_name": instrument_name,
+                "direction": direction,
+                "volume": volume,
+                "open_price": price,
+                "commission": commission * volume,
+                # "created": now,
+            }
+            self.positions.loc[len(self.positions)] = new_position
+            save_volume = volume
+            save_price = price
+            save_commission = commission * volume
+        else:
+            idx = idxs[0].item()
+            old_volume = self.positions.at[idx, "volume"].item()
+            old_price = self.positions.at[idx, "open_price"].item()
+            old_commission = self.positions.at[idx, "commission"].item()
+            new_volume = old_volume + volume
+            new_commission = old_commission + commission * volume
+            # 加权均价
+            new_price = (old_price * old_volume + price * volume) / new_volume
+            self.positions.at[idx, "volume"] = new_volume
+            self.positions.at[idx, "open_price"] = new_price
+            self.positions.at[idx, "commission"] = new_commission
+            # self.positions.at[idx, "created"] = now
+            save_volume = new_volume
+            save_price = new_price
+            save_commission = new_commission
+        # 保存到数据库
+        self.datafeed.save_strategy_position(
+            self.strategy.strategy_id,
+            instrument_id,
+            instrument_name,
+            direction,
+            save_volume,
+            save_price,
+            save_commission,
+        )
 
     def close(
         self, instrument_id, instrument_name, volume, price, direction, commission
-    ): ...
+    ):
+        self.positions = self.positions.reset_index(drop=True)
+        mask = (self.positions["instrument_id"] == instrument_id) & (
+            self.positions["direction"] == direction
+        )
+        idxs = np.where(mask)[0]
+        if len(idxs) == 0:
+            # 没有持仓，直接返回或抛异常
+            return
+        idx = idxs[0].item()
+        old_volume = self.positions.at[idx, "volume"].item()
+        old_commission = self.positions.at[idx, "commission"].item()
+        old_price = self.positions.at[idx, "open_price"].item()
+        new_volume = old_volume - volume
+        new_commission = old_commission + commission * volume
+        if new_volume > 0:
+            # 移动加权平均法调整剩余均价
+            new_price = (old_price * old_volume - price * volume) / new_volume
+            self.positions.at[idx, "volume"] = new_volume
+            self.positions.at[idx, "open_price"] = new_price
+            self.positions.at[idx, "commission"] = new_commission
+            save_volume = new_volume
+            save_price = new_price
+            save_commission = new_commission
+        else:
+            # 平完仓，删除该行
+            self.positions = self.positions.drop(idx).reset_index(drop=True)
+            save_volume = 0
+            save_price = old_price
+            save_commission = new_commission
+        # 保存到数据库
+        self.datafeed.save_strategy_position(
+            self.strategy.strategy_id,
+            instrument_id,
+            instrument_name,
+            direction,
+            save_volume,
+            save_price,
+            save_commission,
+        )
 
 
 class StrategyCombination:
