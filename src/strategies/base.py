@@ -24,6 +24,7 @@ class BaseStrategy(ABC):
         self._deal_queue = Queue()  # 交易信息的队列
         self.period = params.get("period", None)
         self.symbol = params.get("symbol", None)
+        self.commission = params.get("commission", 1.8)
         self.min_bars_count = params.get("min_bars_count", 300)
         self.bars = DataFrameWrapper(
             pd.DataFrame(
@@ -176,11 +177,37 @@ class BaseStrategy(ABC):
                     deal_record.volume,
                 )
         else:
-            ...
+            if deal_record.offset_flag == 48:  # 开仓
+                if deal_record.direction == 48:  # 买入
+                    direction = 1
+                    commission = self.commission
+                elif deal_record.direction == 49:  # 卖出
+                    direction = -1
+                    commission = 0
+                self.strategy_positions.open(
+                    deal_record.instrument_id,
+                    deal_record.instrument_name,
+                    deal_record.volume,
+                    deal_record.price,
+                    direction,
+                    commission,
+                )
+            elif deal_record.offset_flag == 49:  # 平仓
+                if deal_record.direction == 48:  # 买入
+                    direction = 1
+                elif deal_record.direction == 49:  # 卖出
+                    direction = -1
+                self.strategy_positions.close(
+                    deal_record.instrument_id,
+                    deal_record.instrument_name,
+                    deal_record.volume,
+                    deal_record.price,
+                    direction,
+                    self.commission,
+                )
+            else:
+                raise ValueError(f"未知的交易类型: {deal_record}")
 
-    def update_combinations(self): ...
-
-    def update_positions(self): ...
     def _on_data_arrived(self, symbol, period, bar):
         """处理接收到的数据"""
         self._queue.put((symbol, period, bar))
@@ -257,7 +284,7 @@ class StrategyPosition:
         # 过滤持仓记录，仅仅保留相同标的和持仓方向的最新记录，这就是最新的持仓
         positions_df = record2dataframe(positions)
         positions_df = positions_df.sort_values(by="created")
-        idx = positions_df.groupby(["instrumentId", "direction"])[
+        idx = positions_df.groupby(["instrument_id", "direction"])[
             "created"
         ].idxmax()  # noqa
         df = positions_df.loc[idx]
@@ -281,6 +308,14 @@ class StrategyPosition:
                 row["volume"],
                 row["open_price"],
             )
+
+    def open(
+        self, instrument_id, instrument_name, volume, price, direction, commission
+    ): ...
+
+    def close(
+        self, instrument_id, instrument_name, volume, price, direction, commission
+    ): ...
 
 
 class StrategyCombination:

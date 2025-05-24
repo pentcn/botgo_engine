@@ -194,7 +194,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         records = self.client.collection("strategyPositions").get_full_list(
             -1,
             {
-                "filter": f'strategy="{strategy_id}" && created >= "{query_date}"'  # noqa
+                "filter": f'strategy="{strategy_id}" && created >= "{query_date}"  && volume>0'  # noqa
             },  # noqa
         )
         if len(records) == 0:
@@ -203,7 +203,10 @@ class DolphinDBDataFeed(BaseDataFeed):
 
     def get_combinations_positions(self, strategy_id, query_date=datetime.now().date()):
         records = self.client.collection("strategyCombinations").get_full_list(
-            -1, {"filter": f'strategy="{strategy_id}" && created >= "{query_date}"'}
+            -1,
+            {
+                "filter": f'strategy="{strategy_id}" && created >= "{query_date}" && volume>0'
+            },
         )
         if len(records) == 0:
             return []
