@@ -171,7 +171,7 @@ class BaseStrategy(ABC):
                     deal_record.volume,
                 )
                 self.strategy_account.set_last_account()
-            elif deal_record.direction == 49:  # 合并组合
+            elif deal_record.direction == 49:  # 构造组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
@@ -680,11 +680,15 @@ class StrategyAccount:
             floating_profit = floating_profit * self.positions["direction"]
             floating_profit = floating_profit.sum() * 10000
 
+            buyer_position = self.positions[self.positions["direction"] == 1]
+            cost = (buyer_position["open_price"] * buyer_position["volume"]).sum()
+
             available_margin = (
                 self.account["init_cash"]
                 + self.account["profit"]
                 - total_margin
                 - self.positions["commission"].sum()
+                - cost
                 + floating_profit
             )
             self.account = {
