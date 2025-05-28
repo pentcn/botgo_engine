@@ -129,16 +129,15 @@ class BaseStrategy(ABC):
                     self.bars._df = self.datafeed.load_bars(
                         self.symbol, self.min_bars_count, self.period
                     )
-                if self.strategy_account is None:
-                    self.strategy_account = self.datafeed.get_strategy_account(
-                        self.strategy_id
-                    )
                 if self.strategy_positions is None:
                     self.strategy_positions = StrategyPosition(self)  # noqa
                     self.strategy_positions.refresh()
                 if self.strategy_combinations is None:
                     self.strategy_combinations = StrategyCombination(self)  # noqa
                     self.strategy_combinations.refresh()
+                if self.strategy_account is None:
+                    self.strategy_account = StrategyAccount(self)
+                    self.strategy_account.refresh()
 
                 # 处理K线数据
                 symbol, period, bar = (
@@ -171,12 +170,14 @@ class BaseStrategy(ABC):
                     deal_record.instrument_name,
                     deal_record.volume,
                 )
+                self.strategy_account.set_last_account()
             elif deal_record.direction == 49:  # 合并组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
                     deal_record.volume,
                 )
+                self.strategy_account.set_last_account()
         else:
             if deal_record.offset_flag == 48:  # 开仓
                 if deal_record.direction == 48:  # 买入
@@ -193,6 +194,7 @@ class BaseStrategy(ABC):
                     direction,
                     commission,
                 )
+                self.strategy_account.set_last_account()
             elif deal_record.offset_flag == 49:  # 平仓
                 if deal_record.direction == 48:  # 买入
                     direction = -1  # 针对义务仓
@@ -206,6 +208,8 @@ class BaseStrategy(ABC):
                     direction,
                     self.commission,
                 )
+                print("todo: 平仓后需要更新账户的盈利")
+                self.strategy_account.set_last_account()
             else:
                 raise ValueError(f"未知的交易类型: {deal_record}")
 
@@ -231,6 +235,17 @@ class BaseDataFeed(ABC):
         self._subscribed_handlers = {}
         self._bars_cache = {}
         self.trade_calendar = TradeCalendar()
+
+    @property
+    def option_contracts(self):
+        if self.instruments is None or self.instruments.empty:
+            self.instruments = self.load_last_option_contracts()
+            return self.instruments
+        else:
+            date = self.instruments.iloc[0]["Date"]
+            if date != datetime.now().date():
+                self.instruments = self.load_last_option_contracts()
+            return self.instruments
 
     @abstractmethod
     def start(self):
@@ -308,6 +323,7 @@ class StrategyPosition:
                 row["direction"],
                 row["volume"],
                 row["open_price"],
+                row["commission"],
             )
 
     def open(
@@ -403,6 +419,12 @@ class StrategyPosition:
             save_price,
             save_commission,
         )
+
+    def get_active_symbols(self):
+        """获取当前持仓的标的"""
+        if self.positions.empty:
+            return []
+        return self.positions["instrument_id"].unique().tolist()
 
 
 class StrategyCombination:
@@ -507,22 +529,188 @@ class StrategyCombination:
             )
 
 
-if __name__ == "__main__":
-    from utils.pb_client import get_pb_client
-    from utils.config import load_market_db_config, load_history_db_config
-    from strategies.dolphindb_datafeed import DolphinDBDataFeed
+class StrategyAccount:
+    def __init__(self, strategy):
+        self.strategy = strategy
+        self.datafeed = strategy.datafeed
+        self.account = {}
+        self.positions = None
 
-    client = get_pb_client()
+    def refresh(self):
+        account = self.datafeed.get_strategy_account(self.strategy.strategy_id)
+        if account is not None:
+            self.account = {
+                "margin": account.margin,
+                "available_margin": account.available_margin,
+                "init_cash": account.init_cash,
+                "profit": account.profit,
+                "delta": account.delta,
+                "gamma": account.gamma,
+                "vega": account.vega,
+                "theta": account.theta,
+                "rho": account.rho,
+            }
+        self.set_last_account()
 
-    global datafeed
-    datafeed = DolphinDBDataFeed(
-        load_history_db_config(), load_market_db_config(), client
-    )  # noqa
+    def set_last_account(self):
+        def calcuate_greeks(positions, risks):
 
-    class DemoStrategy:
+            # 按合约计算卖方保证金
+            positions["per_margin"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["margin"] for risk in risks}
+            )
+            positions["margin"] = 0
+            positions.loc[positions["direction"] == -1, "margin"] = (
+                positions["per_margin"] * positions["volume"]
+            )
 
-        def __init__(self):
-            self.strategy_id = "7416w114037s7c8"
+            # 计算delta
+            positions["per_delta"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["delta"] for risk in risks}
+            )
+            positions["delta"] = (
+                positions["per_delta"] * positions["volume"] * positions["direction"]
+            )
 
-    positions = StrategyPosition(DemoStrategy(), datafeed)
-    positions.refresh()
+            # 计算gamma
+            positions["per_gamma"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["gamma"] for risk in risks}
+            )
+            positions["gamma"] = (
+                positions["per_gamma"] * positions["volume"] * positions["direction"]
+            )
+
+            # 计算vega
+            positions["per_vega"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["vega"] for risk in risks}
+            )
+            positions["vega"] = (
+                positions["per_vega"] * positions["volume"] * positions["direction"]
+            )
+
+            # 计算theta
+            positions["per_theta"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["theta"] for risk in risks}
+            )
+            positions["theta"] = (
+                positions["per_theta"] * positions["volume"] * positions["direction"]
+            )
+
+            # 计算pho
+            positions["per_rho"] = positions["instrument_id"].map(
+                {risk["instrument_id"]: risk["rho"] for risk in risks}
+            )
+            positions["rho"] = (
+                positions["per_rho"] * positions["volume"] * positions["direction"]
+            )
+            del positions["per_margin"]
+            del positions["per_delta"]
+            del positions["per_gamma"]
+            del positions["per_vega"]
+            del positions["per_theta"]
+            del positions["per_rho"]
+            return positions
+
+        def get_element_from_risks(risks, instrument_id):
+            for risk in risks:
+                if risk["instrument_id"] == instrument_id:
+                    return risk
+            return None
+
+        def adjust_margin_by_combinations(init_margin):
+            total_margin = init_margin
+            combinations = self.strategy.strategy_combinations.combinations
+            for _, row in combinations.iterrows():
+                pair = row["instrument_id"].split("/")
+                strikes = list(
+                    map(
+                        lambda x: self.datafeed.option_contracts.loc[
+                            self.datafeed.option_contracts["InstrumentID"] == x
+                        ],
+                        pair,
+                    )
+                )
+
+                if len(strikes) == 2:
+                    strike_1 = strikes[0]["OptExercisePrice"].item()
+                    strike_2 = strikes[1]["OptExercisePrice"].item()
+                    delta_1 = get_element_from_risks(risks, pair[0])["delta"]
+                    delta_2 = get_element_from_risks(risks, pair[1])["delta"]
+                    if delta_1 * delta_2 > 0:  # 价差组合
+                        diff = (strike_1 - strike_2) * strikes[0][
+                            "VolumeMultiple"
+                        ].item()
+                        if (delta_1 > 0 and strike_1 > strike_2) or (
+                            delta_1 < 0 and strike_1 < strike_2
+                        ):  # 认购牛市或认沽熊市
+                            comb_margin = 0
+                        else:  # 认购熊市或认沽牛市
+                            comb_margin = abs(diff * row["volume"] * 1.06)
+                        old_margin = (
+                            get_element_from_risks(risks, pair[0])["margin"]
+                            * row["volume"]
+                        )
+                        total_margin = total_margin + comb_margin - old_margin
+                    elif delta_1 * delta_2 < 0:  # 跨式或宽跨式组合
+                        margin_1 = get_element_from_risks(risks, pair[0])["margin"]
+                        margin_2 = get_element_from_risks(risks, pair[1])["margin"]
+                        price_1 = get_element_from_risks(risks, pair[0])["price"]
+                        price_2 = get_element_from_risks(risks, pair[1])["price"]
+                        comb_margin = max(margin_1, margin_2) + min(price_1, price_2)
+                        total_margin = (
+                            total_margin
+                            + (comb_margin - margin_1 - margin_2) * row["volume"]
+                        )
+                    else:
+                        log(f"未知的组合类型: {row['instrument_name']}", "error")
+            return total_margin
+
+        if self.strategy.strategy_positions is not None:
+            symbols = self.strategy.strategy_positions.get_active_symbols()
+            risks = self.datafeed.calcuate_risk(symbols)
+            positions = self.strategy.strategy_positions.positions.copy()
+            self.positions = calcuate_greeks(positions, risks)
+            price_dict = {item["instrument_id"]: item["price"] for item in risks}
+            self.positions["price"] = self.positions["instrument_id"].map(price_dict)
+
+            total_margin = self.positions["margin"].sum()
+            total_margin = adjust_margin_by_combinations(total_margin)
+            floating_profit = self.positions["price"] - self.positions["open_price"]
+            floating_profit = floating_profit * self.positions["volume"]
+            floating_profit = floating_profit * self.positions["direction"]
+            floating_profit = floating_profit.sum() * 10000
+
+            available_margin = (
+                self.account["init_cash"]
+                + self.account["profit"]
+                - total_margin
+                - self.positions["commission"].sum()
+                + floating_profit
+            )
+            self.account = {
+                "margin": total_margin,
+                "available_margin": available_margin,
+                "init_cash": self.account["init_cash"],
+                "profit": self.account["profit"],
+                "delta": self.positions["delta"].sum(),
+                "gamma": self.positions["gamma"].sum(),
+                "vega": self.positions["vega"].sum(),
+                "theta": self.positions["theta"].sum(),
+                "rho": self.positions["rho"].sum(),
+            }
+
+            self.save()
+
+    def save(self):
+        self.datafeed.save_strategy_account(
+            self.strategy.strategy_id,
+            self.account["margin"],
+            self.account["available_margin"],
+            self.account["init_cash"],
+            self.account["profit"],
+            self.account["delta"],
+            self.account["gamma"],
+            self.account["vega"],
+            self.account["theta"],
+            self.account["rho"],
+        )

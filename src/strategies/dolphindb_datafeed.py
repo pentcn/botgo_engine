@@ -1,8 +1,10 @@
 import dolphindb as ddb
 import pandas as pd
 from datetime import time, datetime
+from dateutil.parser import parse
 from .base import BaseDataFeed
 from utils.common import generate_action_name
+from utils.option import calculate_iv_and_greeks, calculate_margin
 
 
 class DolphinDBDataFeed(BaseDataFeed):
@@ -95,6 +97,22 @@ class DolphinDBDataFeed(BaseDataFeed):
         conn.close()
         return df
 
+    def load_last_option_contracts(self):
+        conn = ddb.session()
+        conn.connect(
+            self.market_db_config["DB_HOST"],
+            self.market_db_config["DB_PORT"],
+            self.market_db_config["DB_USER"],
+            self.market_db_config["DB_PASSWORD"],
+        )
+        sql = f"""
+            select * from loadTable("{self.market_db_config["DB_NAME"]}", "{self.market_db_config["OPTION_CONTRACT_TABLE"]}")
+            where date = (select max(date) from loadTable("{self.market_db_config["DB_NAME"]}", "{self.market_db_config["OPTION_CONTRACT_TABLE"]}"))
+        """
+        df = conn.run(sql)
+        conn.close()
+        return df
+
     def get_last_tick(self, symbol):
         conn = ddb.session()
         conn.connect(
@@ -139,7 +157,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         conn.close()
         if len(df) == 0:
             return None
-        return df.to_dict("records")[0]
+        return df.to_dict("records")
 
     def load_bars(self, symbol, count, period=1):
         history_bars = self.load_history_minute_bars(symbol, count, period)
@@ -181,7 +199,7 @@ class DolphinDBDataFeed(BaseDataFeed):
 
     def get_strategy_account(self, strategy_id):
         records = self.client.collection("strategyAccount").get_list(
-            1, 20, {"filter": f'strategy="{strategy_id}"'}
+            1, 20, {"filter": f'strategy="{strategy_id}"', "sort": "-created"}
         )
         if len(records.items) == 0:
             return None
@@ -250,6 +268,34 @@ class DolphinDBDataFeed(BaseDataFeed):
             }
         )
 
+    def save_strategy_account(
+        self,
+        strategy_id,
+        margin,
+        available_margin,
+        init_cash,
+        profit,
+        delta,
+        gamma,
+        vega,
+        theta,
+        rho,
+    ):
+        self.client.collection("strategyAccount").create(
+            {
+                "strategy": strategy_id,
+                "margin": margin,
+                "availableMargin": available_margin,
+                "initCash": init_cash,
+                "profit": profit,
+                "delta": delta,
+                "gamma": gamma,
+                "vega": vega,
+                "theta": theta,
+                "rho": rho,
+            }
+        )
+
     def get_last_strategy_positions_date(self, strategy_id):
         records = self.client.collection("strategyPositions").get_list(
             1, 1, {"filter": f'strategy="{strategy_id}"', "sort": "-created"}
@@ -297,3 +343,86 @@ class DolphinDBDataFeed(BaseDataFeed):
                         }
                         handler(symbol, period, last_bar)
                     self._bars_cache[symbol][period] = []
+
+    def calcuate_risk(self, symbols):
+        # 从instruments中获取所有相关合约和标的的信息
+        contracts = {}
+        underlying_symbols = set()
+
+        for symbol in symbols:
+            contract = self.option_contracts.loc[
+                self.option_contracts["InstrumentID"] == symbol
+            ]
+            if contract.empty:
+                continue
+            contracts[f'{symbol}.{contract["ExchangeID"].item()}'] = contract
+            underlying_symbols.add(
+                f"{contract['OptUndlCode'].item()}.{contract['OptUndlMarket'].item()}"
+            )
+
+        if not contracts:
+            return None
+
+        # 获取所有合约和标的最新价格
+        all_symbols = list(contracts.keys()) + list(underlying_symbols)
+        ticks = self.get_last_ticks(all_symbols)
+        if not ticks:
+            return None
+
+        results = []
+        for symbol, contract in contracts.items():
+            # 获取合约和标的最新价格
+            contract_tick = next((t for t in ticks if t["symbol"] == symbol), None)
+            underlying_tick = next(
+                (
+                    t
+                    for t in ticks
+                    if t["symbol"]
+                    == f"{contract['OptUndlCode'].item()}.{contract['OptUndlMarket'].item()}"
+                ),
+                None,
+            )
+
+            if not contract_tick or not underlying_tick:
+                continue
+
+            # 计算保证金
+            margin = calculate_margin(
+                option_type=contract["OptType"].item()[0].lower(),
+                market_price=contract_tick["lastPrice"],
+                underlying_price=underlying_tick["lastPrice"],
+                strike_price=contract["OptExercisePrice"].item(),
+                contract_multiplier=contract["VolumeMultiple"].item(),
+            )
+
+            # 计算剩余天数
+            days_to_expiry = (
+                parse(str(contract["ExpireDate"].item())).date() - datetime.now().date()
+            ).days + 1
+
+            # 计算希腊字母值
+            greeks = calculate_iv_and_greeks(
+                market_price=contract_tick["lastPrice"],
+                underlying_price=underlying_tick["lastPrice"],
+                strike_price=contract["OptExercisePrice"].item(),
+                t_days=days_to_expiry,
+                r=0.0,  # 假设无风险利率为3%
+                option_type=contract["OptType"].item()[0].lower(),
+            )
+
+            results.append(
+                {
+                    "instrument_id": symbol.split(".")[0],
+                    "margin": margin * 1.2,  # 券商默认提高保证金20%
+                    "delta": greeks["delta"],
+                    "gamma": greeks["gamma"],
+                    "theta": greeks["theta"],
+                    "vega": greeks["vega"],
+                    "rho": greeks["rho"],
+                    "sigma": greeks["sigma"],
+                    "undl_price": underlying_tick["lastPrice"],
+                    "price": contract_tick["lastPrice"],
+                }
+            )
+
+        return results
