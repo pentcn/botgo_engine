@@ -208,7 +208,15 @@ class BaseStrategy(ABC):
                     direction,
                     self.commission,
                 )
-                print("todo: 平仓后需要更新账户的盈利")
+                open_price = self.strategy_positions.get_open_price(
+                    deal_record.instrument_id
+                )
+                profit = (
+                    (deal_record.price - open_price)
+                    * deal_record.volume
+                    * direction  # noqa
+                )
+                self.strategy_account.add_profit(profit)
                 self.strategy_account.set_last_account()
             else:
                 raise ValueError(f"未知的交易类型: {deal_record}")
@@ -425,6 +433,12 @@ class StrategyPosition:
         if self.positions.empty:
             return []
         return self.positions["instrument_id"].unique().tolist()
+
+    def get_open_price(self, symbol):
+
+        return self.positions.loc[self.positions["instrument_id"] == symbol][
+            "open_price"
+        ].item()
 
 
 class StrategyCombination:
@@ -718,3 +732,6 @@ class StrategyAccount:
             self.account["theta"],
             self.account["rho"],
         )
+
+    def add_profit(self, profit):
+        self.account["profit"] = self.account["profit"] + profit
