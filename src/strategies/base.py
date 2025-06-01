@@ -300,7 +300,11 @@ class BaseStrategy(ABC):
                     profit = profit - self.strategy_positions.get_commission(
                         deal_record.instrument_id
                     )
+                    profit = profit - self.commission * deal_record.volume
                     self.strategy_account.add_profit(profit)
+                    self.strategy_account.adjust_available_margin(
+                        -self.commission * deal_record.volume
+                    )
 
                 self.strategy_positions.close(
                     deal_record.instrument_id,
@@ -392,6 +396,12 @@ class StrategyPosition:
         self.positions = pd.DataFrame()
 
     def refresh(self):
+        def get_last_max_idx(series):
+            """获取分组中最大值对应的最后一个索引"""
+            max_val = series.max()
+            max_positions = series[series == max_val].index
+            return max_positions[-1]  # 返回最后一个最大值的索引
+
         today = datetime.now().date()
         # 获取当天的所有持仓记录，如果不存在，则获取最近交易日的持仓记录
         positions = self.datafeed.get_strategy_positions(
@@ -409,11 +419,15 @@ class StrategyPosition:
         # 过滤持仓记录，仅仅保留相同标的和持仓方向的最新记录，这就是最新的持仓
         positions_df = record2dataframe(positions)
         positions_df = positions_df.sort_values(by="created")
-        idx = positions_df.groupby(["instrument_id", "direction"])[
-            "created"
-        ].idxmax()  # noqa
+        # idx = positions_df.groupby(["instrument_id", "direction"])[
+        #     "created"
+        # ].idxmax()  # noqa
+        idx = positions_df.groupby(["instrument_id", "direction"])["created"].apply(
+            get_last_max_idx
+        )
         df = positions_df.loc[idx]
         df = df.sort_values(by="created")
+        df = df.loc[df["volume"] > 0]
         self.positions = df.reset_index(drop=True)
 
         # 如果当天是交易日，却没有持仓记录，则保存最新持仓
@@ -858,6 +872,7 @@ class StrategyAccount:
 
             total_margin = self.positions["margin"].sum()
             total_margin = adjust_margin_by_combinations(total_margin)
+            total_margin = total_margin.item()
             floating_profit = (
                 self.positions["price"] - self.positions["open_price"]
             )  # noqa
@@ -908,3 +923,6 @@ class StrategyAccount:
 
     def add_profit(self, profit):
         self.account["profit"] = self.account["profit"] + profit
+
+    def adjust_available_margin(self, value):
+        self.account["available_margin"] += value

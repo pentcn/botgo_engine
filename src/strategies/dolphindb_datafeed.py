@@ -212,7 +212,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         records = self.client.collection("strategyPositions").get_full_list(
             -1,
             {
-                "filter": f'strategy="{strategy_id}" && created >= "{query_date}"  && volume>0'  # noqa
+                "filter": f'strategy="{strategy_id}" && created >= "{query_date}"'  # noqa
             },  # noqa
         )
         if len(records) == 0:
