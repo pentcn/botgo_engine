@@ -1,4 +1,5 @@
 import threading
+import warnings
 from utils.pb_client import get_pb_client
 from pocketbase.services.realtime_service import MessageData
 from utils.logger import log
@@ -6,6 +7,8 @@ from .factory import StrategyFactory
 from .dolphindb_datafeed import DolphinDBDataFeed
 from utils.config import load_market_db_config, load_history_db_config
 from .base import BaseStrategy
+
+warnings.filterwarnings("ignore")
 
 # 用于保存当前已启动的策略实例
 running_strategies = {}
@@ -35,6 +38,7 @@ def start_strategy(strategy, datafeed):
         strategy_instance = StrategyFactory.create_strategy(
             datafeed, strategy.id, strategy.name, strategy.params
         )
+        strategy_instance.set_user(strategy.user)
 
         # 启动策略
         strategy_instance.start()

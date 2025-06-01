@@ -1,6 +1,7 @@
 import threading
 import pandas as pd
 import time
+import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from queue import Queue
@@ -11,7 +12,7 @@ import numpy as np
 
 
 class BaseStrategy(ABC):
-    def __init__(self, strategy_id, name, params, datafeed):
+    def __init__(self, datafeed, strategy_id, name, params):
         self.strategy_id = strategy_id
         self.name = name
         self.datafeed = datafeed
@@ -27,6 +28,7 @@ class BaseStrategy(ABC):
         self.symbol = params.get("symbol", None)
         self.commission = params.get("commission", 1.8)
         self.min_bars_count = params.get("min_bars_count", 300)
+        self.account_id = params.get("account_id", None)
         self.bars = DataFrameWrapper(
             pd.DataFrame(
                 columns=[
@@ -51,6 +53,8 @@ class BaseStrategy(ABC):
         self.strategy_account = None
         self.strategy_positions = None
         self.strategy_combinations = None
+
+        self.user_id = None
 
     def start(self):
         """启动策略线程"""
@@ -81,76 +85,152 @@ class BaseStrategy(ABC):
     def _run_with_error_handling(self):
         """带错误处理的策略运行循环"""
         while self._running:
-            try:
-                self._error_count = 0  # 重置错误计数
-                self.run()  # 运行策略的主要逻辑
+            # try:
+            self._error_count = 0  # 重置错误计数
+            self.run()  # 运行策略的主要逻辑
 
-            except Exception as e:
-                self._error_count += 1
-                log(
-                    f"策略 {self.name} (ID: {self.strategy_id}) 发生错误: {str(e)}",
-                    "error",
-                )
+        # except Exception as e:
+        #     self._error_count += 1
+        #     log(
+        #         f"策略 {self.name} (ID: {self.strategy_id}) 发生错误: {str(e)}",
+        #         "error",
+        #     )
 
-                if self._error_count >= self._max_retries:
-                    log(
-                        f"策略 {self.name} (ID: {self.strategy_id}) 达到最大重试次数，停止运行",
-                        "error",
-                    )
-                    self._running = False
-                    break
+        #     if self._error_count >= self._max_retries:
+        #         log(
+        #             f"策略 {self.name} (ID: {self.strategy_id}) 达到最大重试次数，停止运行",  # noqa
+        #             "error",
+        #         )
+        #         self._running = False
+        #         break
 
-                log(
-                    f"策略 {self.name} (ID: {self.strategy_id}) 将在 {self._retry_delay} 秒后重试",
-                    "warning",
-                )
-                time.sleep(self._retry_delay)
+        #     log(
+        #         f"策略 {self.name} (ID: {self.strategy_id}) 将在 {self._retry_delay} 秒后重试",  # noqa
+        #         "warning",
+        #     )
+        #     time.sleep(self._retry_delay)
 
     def _run_deal_processor(self):
         """交易信息处理线程"""
         while self._running:
-            try:
-                # 使用get_nowait()避免阻塞，如果队列为空则继续循环
-                deal_info = self._deal_queue.get()
-                self._update_strategy_info(deal_info)
-                self.on_deal(deal_info)
-                time.sleep(0.1)
+            # try:
+            # 使用get_nowait()避免阻塞，如果队列为空则继续循环
+            deal_info = self._deal_queue.get()
+            self._update_strategy_info(deal_info)
+            self.on_deal(deal_info)
+            time.sleep(0.1)
 
-            except Exception as e:
-                log(f"策略 {self.name} 处理交易信息时出错: {str(e)}", "error")
-                # 这里可以选择是否要重试，因为交易信息处理失败通常不需要重试
-                continue
+        # except Exception as e:
+        #     log(f"策略 {self.name} 处理交易信息时出错: {str(e)}", "error")
+        #     continue
 
     def run(self):
         """策略的主要运行逻辑"""
         while self._running:
-            try:
-                if self.bars.empty:
-                    self.bars._df = self.datafeed.load_bars(
-                        self.symbol, self.min_bars_count, self.period
-                    )
-                if self.strategy_positions is None:
-                    self.strategy_positions = StrategyPosition(self)  # noqa
-                    self.strategy_positions.refresh()
-                if self.strategy_combinations is None:
-                    self.strategy_combinations = StrategyCombination(self)  # noqa
-                    self.strategy_combinations.refresh()
-                if self.strategy_account is None:
-                    self.strategy_account = StrategyAccount(self)
-                    self.strategy_account.refresh()
+            # try:
+            if self.bars.empty:
+                self.bars._df = self.datafeed.load_bars(
+                    self.symbol, self.min_bars_count, self.period
+                )
+            if self.strategy_positions is None:
+                self.strategy_positions = StrategyPosition(self)  # noqa
+                self.strategy_positions.refresh()
+            if self.strategy_combinations is None:
+                self.strategy_combinations = StrategyCombination(self)  # noqa
+                self.strategy_combinations.refresh()
+            if self.strategy_account is None:
+                self.strategy_account = StrategyAccount(self)
+                self.strategy_account.refresh()
 
-                # 处理K线数据
-                symbol, period, bar = (
-                    self._queue.get()
-                )  # 这里可以保持阻塞，因为K线是按周期产生的
-                self.bars._df.loc[len(self.bars._df)] = bar
-                self.bars._df = self.bars._df.tail(self.min_bars_count)
-                self.bars._df = self.bars._df.reset_index(drop=True)
-                self.on_bar(symbol, period, bar)
+            # 处理K线数据
+            symbol, period, bar = (
+                self._queue.get()
+            )  # 这里可以保持阻塞，因为K线是按周期产生的
+            self.bars._df.loc[len(self.bars._df)] = bar
+            self.bars._df = self.bars._df.tail(self.min_bars_count)
+            self.bars._df = self.bars._df.reset_index(drop=True)
+            self.on_bar(symbol, period, bar)
 
-            except Exception as e:
-                log(f"策略 {self.name} 执行出错: {str(e)}", "error")
-                raise
+        # except Exception as e:
+        #     log(f"策略 {self.name} 执行出错: {str(e)}", "error")
+        #     raise
+
+    def set_user(self, user_id):
+        self.user_id = user_id
+
+    def _trade(self, command_id, symbol, volume):
+        data = {
+            "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
+            "orderType": 1101,
+            "orderCode": symbol,
+            "prType": 14,
+            "price": -1,
+            "volume": volume,
+            "strategyName": self.name,
+            "quickTrade": 1,
+            "userOrderId": self.strategy_id,
+            "user": self.user_id,
+            "accountId": self.account_id,
+        }
+        self.datafeed.create_trade_command(data)
+
+    def buy_open(self, symbol, volume):
+        self._trade(50, symbol, volume)
+
+    def buy_close(self, symbol, volume):
+        self._trade(53, symbol, volume)
+
+    def sell_open(self, symbol, volume):
+        self._trade(52, symbol, volume)
+
+    def sell_close(self, symbol, volume):
+        self._trade(51, symbol, volume)
+
+    def cancel(self, task_id):
+        data = {
+            "orderType": -100,
+            "orderCode": task_id,
+            "strategyName": self.name,
+            "userOrderId": self.strategy_id,
+            "user": self.user_id,
+            "accountId": self.account_id,
+        }
+        self.datafeed.create_trade_command(data)
+
+    def make_combination(
+        self, comd_type, code_1, is_buyer_1, code_2, is_buyer_2, volume
+    ):
+        json_obj = {
+            f"{code_1}": 48 if is_buyer_1 else 49,
+            f"{code_2}": 48 if is_buyer_2 else 49,
+        }
+        # 准备要插入的数据
+        data = {
+            "opType": comd_type.value,
+            "orderType": -200,
+            "orderCode": json.dumps(json_obj),
+            "volume": volume,
+            "strategyName": self.name,
+            "userOrderId": self.strategy_id,
+            "user": self.user_id,
+            "accountId": self.account_id,
+        }
+        self.datafeed.create_trade_command(data)
+
+    def release_combination(self, comb_id):
+        data = {
+            "orderType": -300,
+            "orderCode": comb_id,
+            "strategyName": self.name,
+            "userOrderId": self.strategy_id,
+            "user": self.user_id,
+            "accountId": self.account_id,
+        }
+        self.datafeed.create_trade_command(data)
+
+    def close_combination(self, comb_id): ...
+
+    def move_combination(self, comb_id): ...
 
     @abstractmethod
     def on_bar(self, symbol, period, bar):
@@ -200,6 +280,28 @@ class BaseStrategy(ABC):
                     direction = -1  # 针对义务仓
                 elif deal_record.direction == 49:  # 卖出
                     direction = 1  # 针对权利仓
+
+                volume = self.strategy_positions.get_volume(
+                    deal_record.instrument_id
+                )  # noqa
+                if volume == deal_record.volume:  # 某个合约全部平仓才计算盈利
+                    open_price = self.strategy_positions.get_open_price(
+                        deal_record.instrument_id
+                    )
+                    profit = (
+                        (deal_record.price - open_price)
+                        * deal_record.volume
+                        * direction
+                    )
+                    multi = self.datafeed.get_contract_info(
+                        deal_record.instrument_id, "VolumeMultiple"
+                    )
+                    profit = profit * multi
+                    profit = profit - self.strategy_positions.get_commission(
+                        deal_record.instrument_id
+                    )
+                    self.strategy_account.add_profit(profit)
+
                 self.strategy_positions.close(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
@@ -208,15 +310,6 @@ class BaseStrategy(ABC):
                     direction,
                     self.commission,
                 )
-                open_price = self.strategy_positions.get_open_price(
-                    deal_record.instrument_id
-                )
-                profit = (
-                    (deal_record.price - open_price)
-                    * deal_record.volume
-                    * direction  # noqa
-                )
-                self.strategy_account.add_profit(profit)
                 self.strategy_account.set_last_account()
             else:
                 raise ValueError(f"未知的交易类型: {deal_record}")
@@ -254,6 +347,14 @@ class BaseDataFeed(ABC):
             if date != datetime.now().date():
                 self.instruments = self.load_last_option_contracts()
             return self.instruments
+
+    def get_contract_info(self, instrument_id, column_name):
+        contract = self.option_contracts.loc[
+            self.option_contracts["InstrumentID"] == instrument_id
+        ]
+        if contract.empty:
+            return None
+        return contract.iloc[0][column_name].item()
 
     @abstractmethod
     def start(self):
@@ -335,14 +436,22 @@ class StrategyPosition:
             )
 
     def open(
-        self, instrument_id, instrument_name, volume, price, direction, commission
+        self,
+        instrument_id,
+        instrument_name,
+        volume,
+        price,
+        direction,
+        commission,  # noqa
     ):
         self.positions = self.positions.reset_index(drop=True)
-        # now = datetime.now()
-        mask = (self.positions["instrument_id"] == instrument_id) & (
-            self.positions["direction"] == direction
-        )
-        idxs = np.where(mask)[0]
+        if not self.positions.empty:
+            mask = (self.positions["instrument_id"] == instrument_id) & (
+                self.positions["direction"] == direction
+            )
+            idxs = np.where(mask)[0]
+        else:
+            idxs = []
         if len(idxs) == 0:
             # 新增持仓
             new_position = {
@@ -354,7 +463,10 @@ class StrategyPosition:
                 "commission": commission * volume,
                 # "created": now,
             }
-            self.positions.loc[len(self.positions)] = new_position
+            if not self.positions.empty:
+                self.positions.loc[len(self.positions)] = new_position
+            else:
+                self.positions = pd.DataFrame([new_position])
             save_volume = volume
             save_price = price
             save_commission = commission * volume
@@ -386,7 +498,13 @@ class StrategyPosition:
         )
 
     def close(
-        self, instrument_id, instrument_name, volume, price, direction, commission
+        self,
+        instrument_id,
+        instrument_name,
+        volume,
+        price,
+        direction,
+        commission,  # noqa
     ):
         self.positions = self.positions.reset_index(drop=True)
         mask = (self.positions["instrument_id"] == instrument_id) & (
@@ -415,7 +533,7 @@ class StrategyPosition:
             # 平完仓，删除该行
             self.positions = self.positions.drop(idx).reset_index(drop=True)
             save_volume = 0
-            save_price = old_price
+            save_price = (old_price - price) * volume
             save_commission = new_commission
         # 保存到数据库
         self.datafeed.save_strategy_position(
@@ -439,6 +557,18 @@ class StrategyPosition:
         return self.positions.loc[self.positions["instrument_id"] == symbol][
             "open_price"
         ].item()
+
+    def get_volume(self, symbol):
+        pos = self.positions.loc[self.positions["instrument_id"] == symbol]
+        if pos.empty:
+            return 0
+        return pos["volume"].item()
+
+    def get_commission(self, symbol):
+        pos = self.positions.loc[self.positions["instrument_id"] == symbol]
+        if pos.empty:
+            return 0
+        return pos["commission"].item()
 
 
 class StrategyCombination:
@@ -497,9 +627,13 @@ class StrategyCombination:
         ]
         if existing_combination.empty:
             return
-        existing_combination_volume = int(existing_combination.iloc[0]["volume"])
+        existing_combination_volume = int(
+            existing_combination.iloc[0]["volume"]
+        )  # noqa
         new_volume = existing_combination_volume - volume
-        self.combinations.loc[existing_combination.index[0], "volume"] = new_volume
+        self.combinations.loc[existing_combination.index[0], "volume"] = (
+            new_volume  # noqa
+        )
         self.datafeed.save_strategy_combinations(
             self.strategy.strategy_id,
             instrument_id,
@@ -532,9 +666,13 @@ class StrategyCombination:
                 volume,
             )
         else:
-            existing_combination_volume = int(existing_combination.iloc[0]["volume"])
+            existing_combination_volume = int(
+                existing_combination.iloc[0]["volume"]
+            )  # noqa
             new_volume = existing_combination_volume + volume
-            self.combinations.loc[existing_combination.index[0], "volume"] = new_volume
+            self.combinations.loc[existing_combination.index[0], "volume"] = (
+                new_volume  # noqa
+            )
             self.datafeed.save_strategy_combinations(
                 self.strategy.strategy_id,
                 instrument_id,
@@ -666,14 +804,25 @@ class StrategyAccount:
                         )
                         total_margin = total_margin + comb_margin - old_margin
                     elif delta_1 * delta_2 < 0:  # 跨式或宽跨式组合
-                        margin_1 = get_element_from_risks(risks, pair[0])["margin"]
-                        margin_2 = get_element_from_risks(risks, pair[1])["margin"]
-                        price_1 = get_element_from_risks(risks, pair[0])["price"]
-                        price_2 = get_element_from_risks(risks, pair[1])["price"]
-                        comb_margin = max(margin_1, margin_2) + min(price_1, price_2)
+                        margin_1 = get_element_from_risks(risks, pair[0])[
+                            "margin"
+                        ]  # noqa
+                        margin_2 = get_element_from_risks(risks, pair[1])[
+                            "margin"
+                        ]  # noqa
+                        price_1 = get_element_from_risks(risks, pair[0])[
+                            "price"
+                        ]  # noqa
+                        price_2 = get_element_from_risks(risks, pair[1])[
+                            "price"
+                        ]  # noqa
+                        comb_margin = max(margin_1, margin_2) + min(
+                            price_1, price_2
+                        )  # noqa
                         total_margin = (
                             total_margin
-                            + (comb_margin - margin_1 - margin_2) * row["volume"]
+                            + (comb_margin - margin_1 - margin_2)
+                            * row["volume"]  # noqa
                         )
                     else:
                         log(f"未知的组合类型: {row['instrument_name']}", "error")
@@ -683,19 +832,43 @@ class StrategyAccount:
             symbols = self.strategy.strategy_positions.get_active_symbols()
             risks = self.datafeed.calcuate_risk(symbols)
             positions = self.strategy.strategy_positions.positions.copy()
+            if positions.empty:
+                if self.account != {}:
+                    self.account = {
+                        "margin": 0,
+                        "available_margin": self.account["available_margin"]
+                        + self.account["margin"],
+                        "init_cash": self.account["init_cash"],
+                        "profit": self.account["profit"],
+                        "delta": 0,
+                        "gamma": 0,
+                        "vega": 0,
+                        "theta": 0,
+                        "rho": 0,
+                    }
+                    self.save()
+                return
             self.positions = calcuate_greeks(positions, risks)
-            price_dict = {item["instrument_id"]: item["price"] for item in risks}
-            self.positions["price"] = self.positions["instrument_id"].map(price_dict)
+            price_dict = {
+                item["instrument_id"]: item["price"] for item in risks
+            }  # noqa
+            self.positions["price"] = self.positions["instrument_id"].map(
+                price_dict
+            )  # noqa
 
             total_margin = self.positions["margin"].sum()
             total_margin = adjust_margin_by_combinations(total_margin)
-            floating_profit = self.positions["price"] - self.positions["open_price"]
+            floating_profit = (
+                self.positions["price"] - self.positions["open_price"]
+            )  # noqa
             floating_profit = floating_profit * self.positions["volume"]
             floating_profit = floating_profit * self.positions["direction"]
             floating_profit = floating_profit.sum() * 10000
 
             buyer_position = self.positions[self.positions["direction"] == 1]
-            cost = (buyer_position["open_price"] * buyer_position["volume"]).sum()
+            cost = (
+                buyer_position["open_price"] * buyer_position["volume"]
+            ).sum()  # noqa
 
             available_margin = (
                 self.account["init_cash"]

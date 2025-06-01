@@ -297,6 +297,10 @@ class DolphinDBDataFeed(BaseDataFeed):
             }
         )
 
+    def create_trade_command(self, data):
+
+        self.client.collection("tradeCommands").create(data)
+
     def get_last_strategy_positions_date(self, strategy_id):
         records = self.client.collection("strategyPositions").get_list(
             1, 1, {"filter": f'strategy="{strategy_id}"', "sort": "-created"}

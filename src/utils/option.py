@@ -1,3 +1,4 @@
+from enum import IntEnum
 from py_vollib.black_scholes import implied_volatility
 from py_vollib.black_scholes.greeks import analytical
 
@@ -98,3 +99,16 @@ def calculate_iv_and_greeks(
         "vega": round(vega, 4),
         "rho": round(rho, 4),
     }
+
+
+class OptionCombinationType(IntEnum):
+    """期权交易策略枚举"""
+
+    BULL_CALL_SPREAD = 50  # 认购牛市价差策略
+    BEAR_PUT_SPREAD = 51  # 认沽熊市价差策略
+    BULL_PUT_SPREAD = 52  # 认沽牛市价差策略
+    BEAR_CALL_SPREAD = 53  # 认购熊市价差策略
+    SHORT_STRADDLE = 54  # 跨式空头
+    SHORT_STRANGLE = 55  # 宽跨式空头
+    MARGIN_TO_COVERED = 56  # 保证金开仓转备兑开仓
+    COVERED_TO_MARGIN = 57  # 备兑开仓转保证金开仓

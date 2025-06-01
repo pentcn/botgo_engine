@@ -1,13 +1,30 @@
-from ..base import BaseStrategy
 from pandas_ta import macd, atr
 from indicators.dsrt import DSRT
+from ..base import BaseStrategy
+from utils.option import OptionCombinationType
 
 
 class WangBaStrategy(BaseStrategy):
     def __init__(self, datafeed, strategy_id, name, params):
-        super().__init__(strategy_id, name, params, datafeed)
+        super().__init__(datafeed, strategy_id, name, params)
         self.overbought = params.get("overbought", 70)
         self.oversold = params.get("oversold", 30)
+
+        # 测试买卖单
+        call_1 = "10009326.SHO"  # 6月2700
+        call_2 = "10009327.SHO"  # 6月2750
+        put_1 = "10009335.SHO"  # 6月2700
+        put_2 = "10009336.SHO"  # 6月2750
+
+        # self.sell_open(call_1, 1)
+        # self.buy_open(call_2, 1)
+        # self.sell_close(put_1, 1)
+        # self.buy_close(put_2, 1)
+        self.cancel("14")
+        self.make_combination(
+            OptionCombinationType.BULL_CALL_SPREAD, call_1, True, call_2, False, 1
+        )
+        self.release_combination("202505300000821")
 
     def on_bar(self, symbol, period, bar):
         """处理接收到的K线数据"""
