@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from queue import Queue
 from utils.logger import log
-from utils.common import DataFrameWrapper, record2dataframe
+from utils.common import DataFrameWrapper, record2dataframe, short_uuid
 from utils.trade_calendar import TradeCalendar
 import numpy as np
 
@@ -158,7 +158,10 @@ class BaseStrategy(ABC):
     def set_user(self, user_id):
         self.user_id = user_id
 
-    def _trade(self, command_id, symbol, volume):
+    def _trade(self, command_id, symbol, volume, follow_trade_info=""):
+        remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+        if follow_trade_info != "":
+            remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
         data = {
             "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
             "orderType": 1101,
@@ -168,30 +171,33 @@ class BaseStrategy(ABC):
             "volume": volume,
             "strategyName": self.name,
             "quickTrade": 1,
-            "userOrderId": self.strategy_id,
+            "userOrderId": remark,
             "user": self.user_id,
             "accountId": self.account_id,
         }
         self.datafeed.create_trade_command(data)
 
-    def buy_open(self, symbol, volume):
-        self._trade(50, symbol, volume)
+    def buy_open(self, symbol, volume, follow_trade_info=""):
+        self._trade(50, symbol, volume, follow_trade_info)
 
-    def buy_close(self, symbol, volume):
-        self._trade(53, symbol, volume)
+    def buy_close(self, symbol, volume, follow_trade_info=""):
+        self._trade(53, symbol, volume, follow_trade_info)
 
-    def sell_open(self, symbol, volume):
-        self._trade(52, symbol, volume)
+    def sell_open(self, symbol, volume, follow_trade_info=""):
+        self._trade(52, symbol, volume, follow_trade_info)
 
-    def sell_close(self, symbol, volume):
-        self._trade(51, symbol, volume)
+    def sell_close(self, symbol, volume, follow_trade_info=""):
+        self._trade(51, symbol, volume, follow_trade_info)
 
-    def cancel(self, task_id):
+    def cancel(self, task_id, follow_trade_info=""):
+        remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+        if follow_trade_info != "":
+            remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
         data = {
             "orderType": -100,
             "orderCode": task_id,
             "strategyName": self.name,
-            "userOrderId": self.strategy_id,
+            "userOrderId": remark,
             "user": self.user_id,
             "accountId": self.account_id,
         }
@@ -211,26 +217,29 @@ class BaseStrategy(ABC):
             "orderCode": json.dumps(json_obj),
             "volume": volume,
             "strategyName": self.name,
-            "userOrderId": self.strategy_id,
+            "userOrderId": f"{self.strategy_id}|{short_uuid()}",
             "user": self.user_id,
             "accountId": self.account_id,
         }
         self.datafeed.create_trade_command(data)
 
-    def release_combination(self, comb_id):
+    def release_combination(self, comb_id, follow_trade_info=""):
+        remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+        if follow_trade_info != "":
+            remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
         data = {
             "orderType": -300,
             "orderCode": comb_id,
             "strategyName": self.name,
-            "userOrderId": self.strategy_id,
+            "userOrderId": remark,
             "user": self.user_id,
             "accountId": self.account_id,
         }
         self.datafeed.create_trade_command(data)
 
-    def close_combination(self, comb_id): ...
+    def close_combination(self, comb_dict, volume): ...
 
-    def move_combination(self, comb_id): ...
+    def move_combination(self, comb_dict, volume): ...
 
     @abstractmethod
     def on_bar(self, symbol, period, bar):
@@ -251,6 +260,9 @@ class BaseStrategy(ABC):
                     deal_record.volume,
                 )
                 self.strategy_account.set_last_account()
+
+                # 解析拆分组合的remark信息
+                self.parse_comb_remark(deal_record.remark)
             elif deal_record.direction == 49:  # 构造组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
@@ -293,7 +305,7 @@ class BaseStrategy(ABC):
                         * deal_record.volume
                         * direction
                     )
-                    multi = self.datafeed.get_contract_info(
+                    multi = self.datafeed.get_contract_property(
                         deal_record.instrument_id, "VolumeMultiple"
                     )
                     profit = profit * multi
@@ -330,8 +342,57 @@ class BaseStrategy(ABC):
     def parse_deal_remark(remark):
         if remark == "":
             return {}
-        info = remark.split(".")
+        info = remark.split("|")
         return {"strategy_id": info[0]}
+
+    def parse_comb_remark(self, code_1, code_2, volume, remark):
+        """
+        当拆分组合的命令完成，解析其remark信息，执行下一步操作
+        remark格式如下：
+        策略id.命令id.ab.cdefghij,
+        a-0,1  0代表不处理code_1, 1代表平仓code_1
+        b-0,1  0代表,不处理code_2, 1代表平仓code_2
+        cdef是对code_1的后续开仓操作，如果a=1
+        c-0,1,2,3，0代表本月合约，1代表下月合约，2代表下下月合约，3代表下下下月合约，即平仓code_1后，开仓的合约的月份
+        d-p,c, c代表开仓认购期权，p代表开仓认沽期权
+        e-+,-, +买入开仓，-代表卖出
+        f-0,1,2,3..., 0代码跟code_1一样的行权价，1代表比code_1相差一个行权价，2代表比code_1相差两个行权价，以此类推
+
+        ghij是对code_2的后续开仓操作，如果b=1
+        g-0,1,2,3，0代表本月合约，1代表下月合约，2代表下下月合约，3代表下下下月合约，即平仓code_2后，开仓的合约的月份
+        h-p,c, c代表开仓认购期权，p代表开仓认沽期权
+        i-+,-, +买入开仓，-代表卖出
+
+        j-0,1,2,3..., 0代码跟code_2一样的行权价，1代表比code_2相差一个行权价，2代表比code_2相差两个行权价，以此类推
+        """
+        ...
+        if remark == "":
+            return
+
+        remark.split("|")
+
+        comb_info = self.datafeed.get_comb_info(code_1, code_2, self.user_id)
+        if comb_info is None:
+            return
+
+        info = remark.split("|")
+
+        # strategy_id = info[0]
+        # command_id = info[1] if len(info) >= 2 else None
+        action_info = info[2] if len(info) >= 3 else None
+        next_action_info = "|".join(info[3:]) if len(info) >= 4 else None
+
+        if action_info is not None and len(action_info) == 2:
+            if action_info[0] == "1":
+                if comb_info[code_1] == 48:  # 48权利仓， 49义务仓
+                    self.sell_close(code_1, volume, next_action_info)
+                else:
+                    self.buy_close(code_1, volume, next_action_info)
+            if action_info[1] == "1":
+                if comb_info[code_2] == 48:
+                    self.sell_close(code_2, volume, next_action_info)
+                else:
+                    self.buy_close(code_2, volume, next_action_info)
 
 
 class BaseDataFeed(ABC):
@@ -352,13 +413,110 @@ class BaseDataFeed(ABC):
                 self.instruments = self.load_last_option_contracts()
             return self.instruments
 
-    def get_contract_info(self, instrument_id, column_name):
+    def get_contract_property(self, instrument_id, column_name):
         contract = self.option_contracts.loc[
             self.option_contracts["InstrumentID"] == instrument_id
         ]
         if contract.empty:
             return None
         return contract.iloc[0][column_name].item()
+
+    def get_contract_info(self, symbol):
+        instrument_id = symbol.split(".")[0]
+        contract = self.option_contracts.loc[
+            self.option_contracts["InstrumentID"] == instrument_id
+        ]
+        if contract.empty:
+            return None
+        strike = contract.iloc[0]["OptExercisePrice"]
+        expire_date = contract.iloc[0]["EndDelivDate"].item()
+        undl_code = contract.iloc[0]["OptUndlCode"]
+        opt_type = contract.iloc[0]["OptType"]
+        multi = contract.iloc[0]["VolumeMultiple"].item()
+        all_expire_dates = list(
+            self.option_contracts.groupby("EndDelivDate").groups.keys()
+        )
+        all_expire_dates = sorted(all_expire_dates)
+        return {
+            "strike": strike,
+            "expire_date": expire_date,
+            "undl": undl_code,
+            "opt_type": opt_type,
+            "multi": multi,
+            "monthly": all_expire_dates.index(expire_date),
+        }
+
+    def find_contract_symbol(self, base_symbol, monthly, strikely):
+        """
+        根据合约基础信息，生成合约代码
+        base_symbol: 合约基础代码
+        monthly: 合约月份
+        strikely: 合约行权价的类型，0代码当前行权价，1比当前实一个价位，-1比当前虚一个价位，以此类推
+        return: 合约代码
+        """
+        info = self.get_contract_info(base_symbol)
+        if info is None:
+            return None
+        all_expire_dates = list(
+            self.option_contracts.groupby("EndDelivDate").groups.keys()
+        )
+        all_expire_dates = sorted(all_expire_dates)
+        expire_date = all_expire_dates[monthly]
+        filter_1 = self.option_contracts["VolumeMultiple"] == info["multi"]
+        filter_2 = self.option_contracts["OptUndlCode"] == info["undl"]
+        filter_3 = self.option_contracts["EndDelivDate"] == expire_date
+        filter_4 = self.option_contracts["OptType"] == info["opt_type"]
+        df = self.option_contracts.loc[filter_1 & filter_2 & filter_3 & filter_4]
+        df = df.sort_values("OptExercisePrice")
+        if strikely == 0:
+            row = df.loc[df["OptExercisePrice"] == info["strike"]].iloc[0]
+            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
+        if (strikely / abs(strikely) == 1 and info["opt_type"] == "CALL") or (
+            strikely / abs(strikely) == -1 and info["opt_type"] == "PUT"
+        ):
+            df = df.loc[df["OptExercisePrice"] <= info["strike"]]
+            df = df.reset_index(drop=True)
+            index = -(abs(strikely)) - 1
+            row = df.iloc[index]
+            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
+        else:
+            df = df.loc[df["OptExercisePrice"] >= info["strike"]]
+            df = df.reset_index(drop=True)
+            row = df.iloc[abs(strikely)]
+            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
+
+    def find_std_contract_symbol(
+        self,
+        price,
+        moneyness_range,
+        monthly,
+        undl,
+        is_call=True,
+        need_higher_strike=True,
+    ):
+        all_expire_dates = list(
+            self.option_contracts.groupby("EndDelivDate").groups.keys()
+        )
+        all_expire_dates = sorted(all_expire_dates)
+        expire_date = all_expire_dates[monthly]
+        filter_1 = self.option_contracts["VolumeMultiple"] == 10000
+        filter_2 = self.option_contracts["OptUndlCode"] == undl.split(".")[0]
+        filter_3 = self.option_contracts["EndDelivDate"] == expire_date
+        filter_4 = self.option_contracts["OptType"] == ("CALL" if is_call else "PUT")
+        df = self.option_contracts.loc[filter_1 & filter_2 & filter_3 & filter_4]
+        if is_call:
+            df["moneyness"] = df["OptExercisePrice"].apply(lambda x: price / x)
+        else:
+            df["moneyness"] = df["OptExercisePrice"] / price
+        df = df.loc[
+            (df["moneyness"] >= moneyness_range[0])
+            & (df["moneyness"] <= moneyness_range[1])
+        ]
+        df = df.sort_values("OptExercisePrice", ascending=True)
+        if not df.empty:
+            row = df.iloc[-1] if need_higher_strike else df.iloc[0]
+            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
+        return None
 
     @abstractmethod
     def start(self):

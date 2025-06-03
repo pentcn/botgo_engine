@@ -20,11 +20,17 @@ class WangBaStrategy(BaseStrategy):
         # self.buy_open(call_2, 1)
         # self.sell_close(put_1, 1)
         # self.buy_close(put_2, 1)
-        self.cancel("14")
-        self.make_combination(
-            OptionCombinationType.BULL_CALL_SPREAD, call_1, True, call_2, False, 1
+        # self.cancel("14")
+        # self.make_combination(
+        #     OptionCombinationType.BULL_CALL_SPREAD, call_1, True, call_2, False, 1
+        # )
+        # self.release_combination("202505300000821")
+
+        # symbol_1 = self.datafeed.find_contract_symbol(call_1, 1, -1)
+        symbol_2 = self.datafeed.find_std_contract_symbol(
+            2.75, (0.99, 1.01), 0, "510050", False, True
         )
-        self.release_combination("202505300000821")
+        print(symbol_2)
 
     def on_bar(self, symbol, period, bar):
         """处理接收到的K线数据"""

@@ -431,3 +431,34 @@ class DolphinDBDataFeed(BaseDataFeed):
             )
 
         return results
+
+    def get_comb_records(self, code_1, code_2, user_id):
+        records = self.client.collection("strategyCombinations").get_full_list(
+            -1,
+            {
+                "filter": f'user="{user_id}" && first_code="{code_1}" && second_code="{code_2}"'
+            },
+        )
+        if len(records) == 0:
+            code_1, code_2 = code_2, code_1
+            records = self.client.collection("strategyCombinations").get_full_list(
+                -1,
+                {
+                    "filter": f'user="{user_id}" && first_code="{code_1}" && second_code="{code_2}"'
+                },
+            )
+            if len(records) == 0:
+                return None
+
+        return records
+
+    def get_comb_info(self, code_1, code_2, user_id):
+        records = self.get_comb_records(code_1, code_2, user_id)
+        if len(records) == 0:
+            return None
+        record = records[0]
+
+        return {
+            record.first_code: record.first_code_pos_type,
+            record.second_code: record.second_code_pos_type,
+        }

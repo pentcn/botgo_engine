@@ -62,3 +62,5 @@ coverage.xml
 
 # VS Code
 .vscode/ 
+
+.venv/

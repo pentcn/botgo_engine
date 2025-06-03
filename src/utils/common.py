@@ -1,6 +1,17 @@
 import secrets
 import string
 import pandas as pd
+import uuid
+import base64
+
+
+def short_uuid():
+    """高性能实现，直接操作bytes"""
+    raw = uuid.uuid4().bytes
+    # Base64转换（URL安全）
+    result = base64.b64encode(raw, altchars=b"-_").decode("ascii")
+    # 移除填充符并替换可能的点
+    return result.rstrip("=").replace("|", "_")
 
 
 def generate_action_name(length=12):
