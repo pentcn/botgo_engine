@@ -3,10 +3,12 @@ import pandas as pd
 import time
 import json
 from abc import ABC, abstractmethod
+from time import sleep
 from datetime import datetime
 from queue import Queue
 from utils.logger import log
 from utils.common import DataFrameWrapper, record2dataframe, short_uuid
+from utils.option import OptionCombinationType
 from utils.trade_calendar import TradeCalendar
 import numpy as np
 
@@ -189,19 +191,19 @@ class BaseStrategy(ABC):
     def sell_close(self, symbol, volume, follow_trade_info=""):
         self._trade(51, symbol, volume, follow_trade_info)
 
-    def cancel(self, task_id, follow_trade_info=""):
-        remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
-        if follow_trade_info != "":
-            remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
-        data = {
-            "orderType": -100,
-            "orderCode": task_id,
-            "strategyName": self.name,
-            "userOrderId": remark,
-            "user": self.user_id,
-            "accountId": self.account_id,
-        }
-        self.datafeed.create_trade_command(data)
+    # def cancel(self, task_id, follow_trade_info=""):
+    #     remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+    #     if follow_trade_info != "":
+    #         remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+    #     data = {
+    #         "orderType": -100,
+    #         "orderCode": task_id,
+    #         "strategyName": self.name,
+    #         "userOrderId": remark,
+    #         "user": self.user_id,
+    #         "accountId": self.account_id,
+    #     }
+    #     self.datafeed.create_trade_command(data)
 
     def make_combination(
         self, comd_type, code_1, is_buyer_1, code_2, is_buyer_2, volume
@@ -212,7 +214,7 @@ class BaseStrategy(ABC):
         }
         # 准备要插入的数据
         data = {
-            "opType": comd_type.value,
+            "opType": comd_type,
             "orderType": -200,
             "orderCode": json.dumps(json_obj),
             "volume": volume,
@@ -237,9 +239,57 @@ class BaseStrategy(ABC):
         }
         self.datafeed.create_trade_command(data)
 
-    def close_combination(self, comb_dict, volume): ...
+    def close_combination(self, code_1, code_2, volume):
+        rest_volume = 0
+        comb_code = ""
+        records = self.datafeed.get_comb_records(code_1, code_2, self.user_id)
+        for record in records:
+            if record.volume >= volume:
+                rest_volume = record.volume - volume
+                comb_code = record.comb_code
+                self.release_combination(record.comb_id, "1/1")
+                break
+            else:
+                volume = volume - record.volume
+                self.release_combination(record.comb_id, "1/1")
+        if rest_volume > 0:
+            self.make_combination(
+                OptionCombinationType.get_type_value_by_code(comb_code),
+                f"{record.first_code}.{record.exchange_id}",
+                True if record.first_code_type == 48 else False,
+                f"{record.second_code}.{record.exchange_id}",
+                True if record.second_code_type == 48 else False,
+                rest_volume,
+            )
 
-    def move_combination(self, comb_dict, volume): ...
+    def move_combination(
+        self, code_1, code_2, target_code_1, target_code_2, volume
+    ):  # noqa
+        rest_volume = 0
+        comb_code = ""
+        records = self.datafeed.get_comb_records(code_1, code_2, self.user_id)
+        for record in records:
+            if record.volume >= volume:
+                rest_volume = record.volume - volume
+                comb_code = record.comb_code
+                self.release_combination(
+                    record.comb_id, f"1/1|{target_code_1}/{target_code_2}"
+                )
+                break
+            else:
+                volume = volume - record.volume
+                self.release_combination(
+                    record.comb_id, f"1/1|{target_code_1}/{target_code_2}"
+                )
+        if rest_volume > 0:
+            self.make_combination(
+                OptionCombinationType.get_type_value_by_code(comb_code),
+                f"{record.first_code}.{record.exchange_id}",
+                True if record.first_code_type == 48 else False,
+                f"{record.second_code}.{record.exchange_id}",
+                True if record.second_code_type == 48 else False,
+                rest_volume,
+            )
 
     @abstractmethod
     def on_bar(self, symbol, period, bar):
@@ -261,8 +311,10 @@ class BaseStrategy(ABC):
                 )
                 self.strategy_account.set_last_account()
 
-                # 解析拆分组合的remark信息
-                self.parse_comb_remark(deal_record.remark)
+                # 根据remark信息，执行拆分组合后的后续操作
+                self.after_release(
+                    deal_record.instrument_id, deal_record.volume, deal_record.remark
+                )
             elif deal_record.direction == 49:  # 构造组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
@@ -287,6 +339,14 @@ class BaseStrategy(ABC):
                     commission,
                 )
                 self.strategy_account.set_last_account()
+
+                # 根据remark信息，执行开仓后的后续操作
+                self.after_open(
+                    deal_record.instrument_id,
+                    deal_record.volume,
+                    direction == 1,
+                    deal_record.remark,
+                )
             elif deal_record.offset_flag == 49:  # 平仓
                 if deal_record.direction == 48:  # 买入
                     direction = -1  # 针对义务仓
@@ -327,6 +387,8 @@ class BaseStrategy(ABC):
                     self.commission,
                 )
                 self.strategy_account.set_last_account()
+                # 根据remark信息，执行平仓后的后续操作
+                self.after_close(deal_record.volume, direction == 1, deal_record.remark)
             else:
                 raise ValueError(f"未知的交易类型: {deal_record}")
 
@@ -345,54 +407,137 @@ class BaseStrategy(ABC):
         info = remark.split("|")
         return {"strategy_id": info[0]}
 
-    def parse_comb_remark(self, code_1, code_2, volume, remark):
+    def after_release(self, comb_symbol, volume, remark):
         """
-        当拆分组合的命令完成，解析其remark信息，执行下一步操作
-        remark格式如下：
-        策略id.命令id.ab.cdefghij,
-        a-0,1  0代表不处理code_1, 1代表平仓code_1
-        b-0,1  0代表,不处理code_2, 1代表平仓code_2
-        cdef是对code_1的后续开仓操作，如果a=1
-        c-0,1,2,3，0代表本月合约，1代表下月合约，2代表下下月合约，3代表下下下月合约，即平仓code_1后，开仓的合约的月份
-        d-p,c, c代表开仓认购期权，p代表开仓认沽期权
-        e-+,-, +买入开仓，-代表卖出
-        f-0,1,2,3..., 0代码跟code_1一样的行权价，1代表比code_1相差一个行权价，2代表比code_1相差两个行权价，以此类推
-
-        ghij是对code_2的后续开仓操作，如果b=1
-        g-0,1,2,3，0代表本月合约，1代表下月合约，2代表下下月合约，3代表下下下月合约，即平仓code_2后，开仓的合约的月份
-        h-p,c, c代表开仓认购期权，p代表开仓认沽期权
-        i-+,-, +买入开仓，-代表卖出
-
-        j-0,1,2,3..., 0代码跟code_2一样的行权价，1代表比code_2相差一个行权价，2代表比code_2相差两个行权价，以此类推
+        拆分组合后的后续操作信息,组合的备注信息格式如下：
+        策略ID|uuid|a/b|symbol1/symbol2
+        a/b: 解除后是否平仓合约，0:不平仓，1:平仓
+        symbol1/symbol2: 平仓后是否开仓（移仓）symbol1和symbol2不为空就开仓，否则不操作
         """
-        ...
-        if remark == "":
-            return
-
-        remark.split("|")
-
-        comb_info = self.datafeed.get_comb_info(code_1, code_2, self.user_id)
-        if comb_info is None:
-            return
+        origin_code_1, origin_code_2 = comb_symbol.split("/")
+        comb_info = self.datafeed.get_comb_info(
+            origin_code_1, origin_code_2, self.user_id
+        )
 
         info = remark.split("|")
+        close_flag_1, close_flag_2 = info[2].split("/") if len(info) >= 3 else (0, 0)
+        next_symbol_1, next_symbol_2 = (
+            info[3].split("/") if len(info) >= 4 else ("", "")
+        )
+        pos_type_1 = "1" if comb_info[origin_code_1] == 48 else "-1"
+        pos_type_2 = "1" if comb_info[origin_code_2] == 48 else "-1"
+        if close_flag_1 == "1":
+            if comb_info[origin_code_1] == 48:  # 权利仓
+                self.sell_close(
+                    origin_code_1,
+                    volume,
+                    "|".join([next_symbol_1, next_symbol_2, pos_type_2]),
+                )
+            elif comb_info[origin_code_1] == 49:  # 义务仓
+                self.buy_close(
+                    origin_code_1,
+                    volume,
+                    "|".join([next_symbol_1, next_symbol_2, pos_type_2]),
+                )
+        if close_flag_2 == "1":
+            if comb_info[origin_code_2] == 48:  # 权利仓
+                self.sell_close(
+                    origin_code_2,
+                    volume,
+                    "|".join([next_symbol_2, next_symbol_1, pos_type_1]),
+                )
+            elif comb_info[origin_code_2] == 49:  # 义务仓
+                self.buy_close(
+                    origin_code_2,
+                    volume,
+                    "|".join([next_symbol_2, next_symbol_1, pos_type_1]),
+                )
 
-        # strategy_id = info[0]
-        # command_id = info[1] if len(info) >= 2 else None
-        action_info = info[2] if len(info) >= 3 else None
-        next_action_info = "|".join(info[3:]) if len(info) >= 4 else None
+    def after_close(self, volume, is_buyer=True, remark=""):
+        """
+        平仓后的后续操作信息,平仓的备注信息格式如下：
+        策略ID|uuid|symbol1/symbol2|a
+        symbol1: 平仓后需要新开的合约代码
+        symbol2: 新开仓后，如果有可用的symbol2合约，构造组合
+        a:1，待构造组合为权利仓，-1 待构造组合为义务仓
+        """
+        info = remark.split("|")
+        new_symbol = info[2] if len(info) >= 3 else ""
+        opposite_symbol = "|".join(info[3:]) if len(info) >= 4 else ""
+        if new_symbol != "":
+            if is_buyer:
+                self.buy_open(new_symbol, volume, opposite_symbol)
+            else:
+                self.sell_open(new_symbol, volume, opposite_symbol)
 
-        if action_info is not None and len(action_info) == 2:
-            if action_info[0] == "1":
-                if comb_info[code_1] == 48:  # 48权利仓， 49义务仓
-                    self.sell_close(code_1, volume, next_action_info)
-                else:
-                    self.buy_close(code_1, volume, next_action_info)
-            if action_info[1] == "1":
-                if comb_info[code_2] == 48:
-                    self.sell_close(code_2, volume, next_action_info)
-                else:
-                    self.buy_close(code_2, volume, next_action_info)
+    def after_open(self, symbol, volume, is_buyer, remark=""):
+        """
+        开仓后根据remark作后续操作，开仓备注信息格式如下：
+        策略ID|uuid|symbol|a
+        symbol:待构造组合的symbol
+        a=1：表明构造组合的symbol为权利仓 ; a=-1表明义务仓
+        """
+        info = remark.split("|")
+        value = info[3] if len(info) >= 4 else ""
+        opposite_is_buyer = True if value == "1" else False
+        opposite_symbol = info[2] if len(info) >= 3 else ""
+        opposite_strike, opposite_type = self.datafeed.get_strike(opposite_symbol)
+        strike, pos_type = self.datafeed.get_strike(symbol)
+
+        opponent_volume = self.datafeed.get_available_volume(
+            self.user_id, opposite_symbol.split(".")[0]
+        )
+        vol = min(opponent_volume, volume)
+        if vol == 0:
+            return
+
+        if strike is None or opposite_strike is None:
+            return
+
+        if is_buyer:
+            first_opt = (True, symbol, strike, pos_type)
+            second_opt = (
+                opposite_is_buyer,
+                opposite_symbol,
+                opposite_strike,
+                opposite_type,
+            )
+        else:
+            first_opt = (
+                opposite_is_buyer,
+                opposite_symbol,
+                opposite_strike,
+                opposite_type,
+            )
+            second_opt = (True, symbol, strike, pos_type)
+
+        comb_type = None
+        if first_opt[0]:  # 价差组合
+            if first_opt[3] == "CALL":
+                if first_opt[2] < second_opt[2]:  # 认购牛市价差
+                    comb_type = OptionCombinationType.BULL_CALL_SPREAD
+                else:  # 认购熊市价差
+                    comb_type = OptionCombinationType.BEAR_CALL_SPREAD
+            else:
+                if first_opt[2] < second_opt[2]:  # 认沽牛市价差
+                    comb_type = OptionCombinationType.BULL_PUT_SPREAD
+                else:  # 认沽牛市价差
+                    comb_type = OptionCombinationType.BEAR_PUT_SPREAD
+
+        elif first_opt[2] == second_opt[2]:  # 跨式组合
+            comb_type = OptionCombinationType.SHORT_STRADDLE
+        else:  # 宽跨式组合
+            comb_type = OptionCombinationType.SHORT_STRANGLE
+
+        if comb_type is not None:
+            self.make_combination(
+                comb_type.value,
+                first_opt[1],
+                first_opt[0],
+                second_opt[1],
+                second_opt[0],
+                vol,
+            )
 
 
 class BaseDataFeed(ABC):
@@ -958,8 +1103,15 @@ class StrategyAccount:
                 if len(strikes) == 2:
                     strike_1 = strikes[0]["OptExercisePrice"].item()
                     strike_2 = strikes[1]["OptExercisePrice"].item()
-                    delta_1 = get_element_from_risks(risks, pair[0])["delta"]
-                    delta_2 = get_element_from_risks(risks, pair[1])["delta"]
+
+                    item = get_element_from_risks(risks, pair[0])
+                    if item is None:
+                        return
+                    delta_1 = item["delta"]
+                    item = get_element_from_risks(risks, pair[1])
+                    if item is None:
+                        return
+                    delta_2 = item["delta"]
                     if delta_1 * delta_2 > 0:  # 价差组合
                         diff = (strike_1 - strike_2) * strikes[0][
                             "VolumeMultiple"
@@ -1003,6 +1155,8 @@ class StrategyAccount:
         if self.strategy.strategy_positions is not None:
             symbols = self.strategy.strategy_positions.get_active_symbols()
             risks = self.datafeed.calcuate_risk(symbols)
+            if risks is None:
+                return
             positions = self.strategy.strategy_positions.positions.copy()
             if positions.empty:
                 if self.account != {}:
@@ -1030,7 +1184,10 @@ class StrategyAccount:
 
             total_margin = self.positions["margin"].sum()
             total_margin = adjust_margin_by_combinations(total_margin)
-            total_margin = total_margin.item()
+            if total_margin is None:
+                total_margin = 0
+            else:
+                total_margin = total_margin.item()
             floating_profit = (
                 self.positions["price"] - self.positions["open_price"]
             )  # noqa

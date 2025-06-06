@@ -7,6 +7,7 @@ from utils.option import OptionCombinationType
 class WangBaStrategy(BaseStrategy):
     def __init__(self, datafeed, strategy_id, name, params):
         super().__init__(datafeed, strategy_id, name, params)
+        self.user_id = "v4w3357rsqml48g"
         self.overbought = params.get("overbought", 70)
         self.oversold = params.get("oversold", 30)
 
@@ -16,8 +17,8 @@ class WangBaStrategy(BaseStrategy):
         put_1 = "10009335.SHO"  # 6月2700
         put_2 = "10009336.SHO"  # 6月2750
 
-        # self.sell_open(call_1, 1)
-        # self.buy_open(call_2, 1)
+        self.sell_open(call_1, 20)
+        self.buy_open(call_2, 20)
         # self.sell_close(put_1, 1)
         # self.buy_close(put_2, 1)
         # self.cancel("14")
@@ -27,10 +28,10 @@ class WangBaStrategy(BaseStrategy):
         # self.release_combination("202505300000821")
 
         # symbol_1 = self.datafeed.find_contract_symbol(call_1, 1, -1)
-        symbol_2 = self.datafeed.find_std_contract_symbol(
-            2.75, (0.99, 1.01), 0, "510050", False, True
-        )
-        print(symbol_2)
+        # symbol_2 = self.datafeed.find_std_contract_symbol(
+        #     2.75, (0.99, 1.01), 0, "510050", False, True
+        # )
+        # print(symbol_2)
 
     def on_bar(self, symbol, period, bar):
         """处理接收到的K线数据"""

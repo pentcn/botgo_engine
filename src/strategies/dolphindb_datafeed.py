@@ -317,6 +317,20 @@ class DolphinDBDataFeed(BaseDataFeed):
             return None
         return records.items[-1].created.date()
 
+    def get_available_volume(self, user_id, symbol):
+        records = self.client.collection("positions").get_list(
+            1,
+            1,
+            {
+                "filter": f'user="{user_id}" && instrumentId="{symbol}"',
+                "sort": "-created",
+            },
+        )
+        if len(records.items) == 1:
+            return records.items[0].can_use_volume
+
+        return 0
+
     def _on_data_arrived(self, bar_data):
         symbol = bar_data[1]
         if symbol in self._subscribed_handlers:
@@ -433,18 +447,18 @@ class DolphinDBDataFeed(BaseDataFeed):
         return results
 
     def get_comb_records(self, code_1, code_2, user_id):
-        records = self.client.collection("strategyCombinations").get_full_list(
+        records = self.client.collection("combinations").get_full_list(
             -1,
             {
-                "filter": f'user="{user_id}" && first_code="{code_1}" && second_code="{code_2}"'
+                "filter": f'user="{user_id}" && firstCode="{code_1}" && secondCode="{code_2}"'
             },
         )
         if len(records) == 0:
             code_1, code_2 = code_2, code_1
-            records = self.client.collection("strategyCombinations").get_full_list(
+            records = self.client.collection("combinations").get_full_list(
                 -1,
                 {
-                    "filter": f'user="{user_id}" && first_code="{code_1}" && second_code="{code_2}"'
+                    "filter": f'user="{user_id}" && firstCode="{code_2}" && secondCode="{code_1}"'
                 },
             )
             if len(records) == 0:
@@ -461,4 +475,13 @@ class DolphinDBDataFeed(BaseDataFeed):
         return {
             record.first_code: record.first_code_pos_type,
             record.second_code: record.second_code_pos_type,
+            "exchange_id": record.exchange_id,
         }
+
+    def get_strike(self, instrument_id):
+        code = instrument_id.split(".")[0]
+        instruments = self.option_contracts
+        row = instruments.loc[instruments["InstrumentID"] == code]
+        if not row.empty:
+            return row.iloc[0]["OptExercisePrice"], row.iloc[0]["OptType"]
+        return None, None

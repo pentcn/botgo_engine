@@ -112,3 +112,18 @@ class OptionCombinationType(IntEnum):
     SHORT_STRANGLE = 55  # 宽跨式空头
     MARGIN_TO_COVERED = 56  # 保证金开仓转备兑开仓
     COVERED_TO_MARGIN = 57  # 备兑开仓转保证金开仓
+
+    @staticmethod
+    def get_type_value_by_code(code):
+        map_table = {
+            "CNSJC": 50,
+            "PXSJC": 51,
+            "PNSJC": 52,
+            "CXSJC": 53,
+            "KS": 54,
+            "KKS": 55,
+            "ZBD": 56,
+            "ZXJ": 57,
+        }
+
+        return map_table[code]
