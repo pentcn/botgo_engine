@@ -299,7 +299,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         )
 
     def create_trade_command(self, data):
-        data["created"] = datetime.now(timezone.utc)
+        data["created"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")
         self.client.collection("tradeCommands").create(data)
         sleep(0.0001)
 
