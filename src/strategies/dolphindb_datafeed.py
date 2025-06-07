@@ -1,6 +1,7 @@
 import dolphindb as ddb
 import pandas as pd
-from datetime import time, datetime
+from datetime import time, datetime, timezone
+from time import sleep
 from dateutil.parser import parse
 from .base import BaseDataFeed
 from utils.common import generate_action_name
@@ -298,8 +299,9 @@ class DolphinDBDataFeed(BaseDataFeed):
         )
 
     def create_trade_command(self, data):
-
+        data["created"] = datetime.now(timezone.utc)
         self.client.collection("tradeCommands").create(data)
+        sleep(0.0001)
 
     def get_last_strategy_positions_date(self, strategy_id):
         records = self.client.collection("strategyPositions").get_list(
