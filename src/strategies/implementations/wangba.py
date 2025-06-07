@@ -1,10 +1,13 @@
 from pandas_ta import macd, atr
 from indicators.dsrt import DSRT
-from ..base import BaseStrategy
+from ..base import BaseStrategy, StateVariable
 from utils.option import OptionCombinationType
 
 
 class WangBaStrategy(BaseStrategy):
+    proctect_price = StateVariable(0.0, description="保护价格")
+    loss_price = StateVariable(0.0, description="亏损价格")
+
     def __init__(self, datafeed, strategy_id, name, params):
         super().__init__(datafeed, strategy_id, name, params)
         self.user_id = "v4w3357rsqml48g"

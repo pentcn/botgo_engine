@@ -485,3 +485,134 @@ class DolphinDBDataFeed(BaseDataFeed):
         if not row.empty:
             return row.iloc[0]["OptExercisePrice"], row.iloc[0]["OptType"]
         return None, None
+
+    # 策略状态持久化相关方法
+    def save_strategy_state_to_db(self, strategy_id, user_id, strategy_name, state_data, version):
+        """
+        保存策略状态到数据库
+        
+        Args:
+            strategy_id (str): 策略ID
+            user_id (str): 用户ID
+            strategy_name (str): 策略名称
+            state_data (str): JSON格式的状态数据
+            version (int): 版本号
+            
+        Returns:
+            bool: 保存是否成功
+        """
+        try:
+            save_data = {
+                "user": user_id,
+                "strategy": strategy_id,
+                "state_data": state_data,
+                "version": version
+            }
+            
+            # 使用PocketBase客户端保存数据
+            self.client.collection("strategyStates").create(save_data)
+            return True
+            
+        except Exception as e:
+            from utils.logger import log
+            log(f"保存策略状态到数据库失败: {str(e)}", "error")
+            return False
+
+    def load_strategy_state_from_db(self, strategy_id, user_id):
+        """
+        从数据库加载策略状态
+        
+        Args:
+            strategy_id (str): 策略ID
+            user_id (str): 用户ID
+            
+        Returns:
+            dict: 状态数据，如果没有找到则返回None
+        """
+        try:
+            records = self.client.collection("strategyStates").get_list(
+                1, 1, {
+                    "filter": f'strategy="{strategy_id}" && user="{user_id}"',
+                    "sort": "-created"
+                }
+            )
+            
+            if len(records.items) > 0:
+                record = records.items[0]
+                return {
+                    "state_data": record.state_data,
+                    "last_updated": record.updated,
+                    "version": getattr(record, 'version', 0)
+                }
+            else:
+                return None
+                
+        except Exception as e:
+            from utils.logger import log
+            log(f"从数据库加载策略状态失败: {str(e)}", "error")
+            return None
+
+    def delete_strategy_state_from_db(self, strategy_id, user_id):
+        """
+        从数据库删除策略状态
+        
+        Args:
+            strategy_id (str): 策略ID
+            user_id (str): 用户ID
+            
+        Returns:
+            bool: 删除是否成功
+        """
+        try:
+            records = self.client.collection("strategyStates").get_list(
+                1, 50, {
+                    "filter": f'strategy="{strategy_id}" && user="{user_id}"'
+                }
+            )
+            
+            for record in records.items:
+                self.client.collection("strategyStates").delete(record.id)
+            
+            return True
+            
+        except Exception as e:
+            from utils.logger import log
+            log(f"从数据库删除策略状态失败: {str(e)}", "error")
+            return False
+
+    def get_strategy_state_history(self, strategy_id, user_id, limit=10):
+        """
+        获取策略状态历史记录
+        
+        Args:
+            strategy_id (str): 策略ID
+            user_id (str): 用户ID
+            limit (int): 返回记录数量限制
+            
+        Returns:
+            list: 历史记录列表
+        """
+        try:
+            records = self.client.collection("strategyStates").get_list(
+                1, limit, {
+                    "filter": f'strategy="{strategy_id}" && user="{user_id}"',
+                    "sort": "-created"
+                }
+            )
+            
+            history = []
+            for record in records.items:
+                history.append({
+                    "id": record.id,
+                    "state_data": record.state_data,
+                    "last_updated": record.updated,
+                    "version": getattr(record, 'version', 0),
+                    "created": record.created
+                })
+            
+            return history
+            
+        except Exception as e:
+            from utils.logger import log
+            log(f"获取策略状态历史失败: {str(e)}", "error")
+            return []
