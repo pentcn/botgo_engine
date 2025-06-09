@@ -54,6 +54,15 @@ def record2dataframe(records):
     return pd.DataFrame(values)
 
 
+def decompose(n, m):
+    q = n // m  # 商，表示 m 的个数
+    r = n % m  # 余数
+    if r == 0:
+        return [m] * q
+    else:
+        return [m] * q + [r]
+
+
 class DataFrameWrapper:
     def __init__(self, dataframe):
         self._df = dataframe

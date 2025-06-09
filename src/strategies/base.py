@@ -3,12 +3,11 @@ import pandas as pd
 import time
 import json
 from abc import ABC, abstractmethod
-from time import sleep
 from datetime import datetime
 from queue import Queue
 from typing import Any, Dict, Set
 from utils.logger import log
-from utils.common import DataFrameWrapper, record2dataframe, short_uuid
+from utils.common import DataFrameWrapper, record2dataframe, short_uuid, decompose
 from utils.option import OptionCombinationType
 from utils.trade_calendar import TradeCalendar
 import numpy as np
@@ -16,32 +15,34 @@ import numpy as np
 
 class StateVariable:
     """状态变量描述符 - 实现友好的状态访问"""
-    
+
     def __init__(self, default_value: Any = None, description: str = ""):
         self.default_value = default_value
         self.description = description
         self.name = None  # 将在 __set_name__ 中设置
-    
+
     def __set_name__(self, owner, name):
         self.name = name
-    
+
     def __get__(self, instance, owner):
         if instance is None:
             return self
         return instance._strategy_state.get(self.name, self.default_value)
-    
+
     def __set__(self, instance, value):
         if instance is None:
             return
-        
+
         # 更新内存中的状态
         instance._strategy_state[self.name] = value
-        
+
         # 如果策略已初始化完成，则自动保存到数据库
-        if (hasattr(instance, '_strategy_initialized') and 
-            instance._strategy_initialized and
-            hasattr(instance, 'user_id') and 
-            instance.user_id):
+        if (
+            hasattr(instance, "_strategy_initialized")
+            and instance._strategy_initialized
+            and hasattr(instance, "user_id")
+            and instance.user_id
+        ):
             instance.save_strategy_state()
 
 
@@ -89,19 +90,19 @@ class BaseStrategy(ABC):
         self.strategy_combinations = None
 
         self.user_id = None
-        
+
         # 策略状态持久化相关属性
         self._strategy_state = {}  # 存储策略的自定义状态变量
         self._state_loaded = False  # 标记状态是否已加载
         self._strategy_initialized = False  # 标记策略是否完全初始化
-        
+
         # 友好状态访问相关属性
         self._state_variables: Set[str] = set()  # 存储状态变量名称
-        
+
         # 发现并初始化状态变量
         self._discover_state_variables()
         self._initialize_state_variables()
-        
+
         # 在策略初始化时自动加载状态
         self._load_strategy_state_on_init()
 
@@ -125,12 +126,12 @@ class BaseStrategy(ABC):
     def stop(self):
         """停止策略线程"""
         self._running = False
-        
+
         # 策略停止时保存最终状态
         if self._strategy_state and self.user_id:
             self.save_strategy_state(force_save=True)
             log(f"策略 {self.name} (ID: {self.strategy_id}) 最终状态已保存")
-        
+
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5)
         if self._deal_thread and self._deal_thread.is_alive():
@@ -204,12 +205,12 @@ class BaseStrategy(ABC):
             self.bars._df.loc[len(self.bars._df)] = bar
             self.bars._df = self.bars._df.tail(self.min_bars_count)
             self.bars._df = self.bars._df.reset_index(drop=True)
-            
+
             # 确保状态已加载
             self._ensure_state_loaded()
-            
+
             self.on_bar(symbol, period, bar)
-            
+
             # 定期自动保存状态
             self._auto_save_state()
 
@@ -225,36 +226,42 @@ class BaseStrategy(ABC):
         self._strategy_initialized = True
         log(f"策略 {self.name} 用户设置完成: {user_id}, 状态已加载")
 
-    def _trade(self, command_id, symbol, volume, follow_trade_info=""):
-        remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
-        if follow_trade_info != "":
+    def _trade(
+        self, command_id, symbol, volume, follow_trade_info="", max_oder_size=-1
+    ):
+        if max_order_size == -1:
+            max_order_size = volume
+
+        for vol in decompose(volume, max_order_size):
             remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
-        data = {
-            "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
-            "orderType": 1101,
-            "orderCode": symbol,
-            "prType": 14,
-            "price": -1,
-            "volume": volume,
-            "strategyName": self.name,
-            "quickTrade": 1,
-            "userOrderId": remark,
-            "user": self.user_id,
-            "accountId": self.account_id,
-        }
-        self.datafeed.create_trade_command(data)
+            if follow_trade_info != "":
+                remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
+            data = {
+                "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
+                "orderType": 1101,
+                "orderCode": symbol,
+                "prType": 14,
+                "price": -1,
+                "volume": vol,
+                "strategyName": self.name,
+                "quickTrade": 1,
+                "userOrderId": remark,
+                "user": self.user_id,
+                "accountId": self.account_id,
+            }
+            self.datafeed.create_trade_command(data)
 
-    def buy_open(self, symbol, volume, follow_trade_info=""):
-        self._trade(50, symbol, volume, follow_trade_info)
+    def buy_open(self, symbol, volume, follow_trade_info="", max_order_size=-1):
+        self._trade(50, symbol, volume, follow_trade_info, max_order_size)
 
-    def buy_close(self, symbol, volume, follow_trade_info=""):
-        self._trade(53, symbol, volume, follow_trade_info)
+    def buy_close(self, symbol, volume, follow_trade_info="", max_order_size=-1):
+        self._trade(53, symbol, volume, follow_trade_info, max_order_size)
 
-    def sell_open(self, symbol, volume, follow_trade_info=""):
-        self._trade(52, symbol, volume, follow_trade_info)
+    def sell_open(self, symbol, volume, follow_trade_info="", max_order_size=-1):
+        self._trade(52, symbol, volume, follow_trade_info, max_order_size)
 
-    def sell_close(self, symbol, volume, follow_trade_info=""):
-        self._trade(51, symbol, volume, follow_trade_info)
+    def sell_close(self, symbol, volume, follow_trade_info="", max_order_size=-1):
+        self._trade(51, symbol, volume, follow_trade_info, max_order_size)
 
     # def cancel(self, task_id, follow_trade_info=""):
     #     remark = f"{self.strategy_id}|{short_uuid()}|{follow_trade_info}"
@@ -607,52 +614,63 @@ class BaseStrategy(ABC):
     def save_strategy_state(self, state_data=None, force_save=False):
         """
         保存策略状态到数据库
-        
+
         Args:
             state_data (dict, optional): 要保存的状态数据，如果为None则保存self._strategy_state
             force_save (bool): 是否强制保存，忽略时间间隔限制
         """
         try:
             current_time = time.time()
-            
+
             # 检查是否需要保存（除非强制保存）
-            if not force_save and (current_time - self._last_state_save_time) < self._state_auto_save_interval:
+            if (
+                not force_save
+                and (current_time - self._last_state_save_time)
+                < self._state_auto_save_interval
+            ):
                 return
-            
+
             # 确定要保存的数据
             if state_data is None:
                 # 优先保存状态变量，同时保持向后兼容
                 if self._state_variables:
-                    state_data = {name: self._strategy_state.get(name) for name in self._state_variables}
+                    state_data = {
+                        name: self._strategy_state.get(name)
+                        for name in self._state_variables
+                    }
                     # 添加非状态变量的数据（向后兼容）
                     for key, value in self._strategy_state.items():
                         if key not in self._state_variables:
                             state_data[key] = value
                 else:
                     state_data = self._strategy_state.copy()
-            
+
             # 使用datafeed的方法保存状态
             success = self.datafeed.save_strategy_state_to_db(
                 self.strategy_id,
                 self.user_id,
                 self.name,
-                json.dumps(state_data, default=str),  # 使用default=str处理不可序列化的对象
-                int(current_time)  # 使用时间戳作为版本号
+                json.dumps(
+                    state_data, default=str
+                ),  # 使用default=str处理不可序列化的对象
+                int(current_time),  # 使用时间戳作为版本号
             )
-            
+
             if success:
                 self._last_state_save_time = current_time
-                log(f"策略 {self.name} (ID: {self.strategy_id}) 状态已保存，包含 {len(state_data)} 个变量")
-            
+                log(
+                    f"策略 {self.name} (ID: {self.strategy_id}) 状态已保存，包含 {len(state_data)} 个变量"
+                )
+
             return success
-            
+
         except Exception as e:
             log(f"保存策略状态失败: {str(e)}", "error")
 
     def load_strategy_state(self):
         """
         从数据库加载策略状态
-        
+
         Returns:
             dict: 加载的状态数据，如果没有找到则返回空字典
         """
@@ -660,33 +678,39 @@ class BaseStrategy(ABC):
             if not self.user_id:
                 log(f"策略 {self.name} 用户ID未设置，无法加载状态", "warning")
                 return {}
-            
+
             # 使用datafeed的方法加载状态
-            record_data = self.datafeed.load_strategy_state_from_db(self.strategy_id, self.user_id)
-            
+            record_data = self.datafeed.load_strategy_state_from_db(
+                self.strategy_id, self.user_id
+            )
+
             if record_data:
                 state_data = record_data["state_data"]
-                
+
                 # 只更新已定义的状态变量
                 for var_name in self._state_variables:
                     if var_name in state_data:
                         self._strategy_state[var_name] = state_data[var_name]
-                
+
                 # 同时支持旧方式的状态变量
                 for key, value in state_data.items():
                     if key not in self._state_variables:
                         self._strategy_state[key] = value
-                
+
                 self._state_loaded = True
-                log(f"策略 {self.name} (ID: {self.strategy_id}) 状态已加载，包含 {len(state_data)} 个变量")
+                log(
+                    f"策略 {self.name} (ID: {self.strategy_id}) 状态已加载，包含 {len(state_data)} 个变量"
+                )
                 return state_data
             else:
-                log(f"策略 {self.name} (ID: {self.strategy_id}) 未找到历史状态，使用默认值")
+                log(
+                    f"策略 {self.name} (ID: {self.strategy_id}) 未找到历史状态，使用默认值"
+                )
                 # 如果没有历史状态且有状态变量定义，保存初始状态
                 if self._state_variables and self.user_id:
                     self.save_strategy_state(force_save=True)
                 return {}
-                
+
         except Exception as e:
             log(f"加载策略状态失败: {str(e)}", "error")
             return {}
@@ -694,11 +718,11 @@ class BaseStrategy(ABC):
     def get_state_variable(self, key, default_value=None):
         """
         获取策略状态变量
-        
+
         Args:
             key (str): 变量名
             default_value: 默认值
-            
+
         Returns:
             变量值或默认值
         """
@@ -707,13 +731,13 @@ class BaseStrategy(ABC):
     def set_state_variable(self, key, value):
         """
         设置策略状态变量
-        
+
         Args:
             key (str): 变量名
             value: 变量值
         """
         self._strategy_state[key] = value
-        
+
         # 状态变化时立即保存
         if self.user_id:
             self.save_strategy_state()
@@ -721,12 +745,12 @@ class BaseStrategy(ABC):
     def update_state_variables(self, variables_dict):
         """
         批量更新策略状态变量
-        
+
         Args:
             variables_dict (dict): 要更新的变量字典
         """
         self._strategy_state.update(variables_dict)
-        
+
         # 批量更新后立即保存
         if self.user_id:
             self.save_strategy_state()
@@ -760,7 +784,7 @@ class BaseStrategy(ABC):
             for name, value in cls.__dict__.items():
                 if isinstance(value, StateVariable):
                     self._state_variables.add(name)
-        
+
         if self._state_variables:
             log(f"策略 {self.name} 发现状态变量: {list(self._state_variables)}")
 
@@ -779,7 +803,7 @@ class BaseStrategy(ABC):
             summary[var_name] = {
                 "value": self._strategy_state.get(var_name),
                 "default": descriptor.default_value,
-                "description": descriptor.description
+                "description": descriptor.description,
             }
         return summary
 
@@ -801,7 +825,7 @@ class BaseStrategy(ABC):
     def delete_strategy_state(self):
         """
         删除策略状态
-        
+
         Returns:
             bool: 删除是否成功
         """
@@ -809,16 +833,18 @@ class BaseStrategy(ABC):
             if not self.user_id:
                 log(f"策略 {self.name} 用户ID未设置，无法删除状态", "warning")
                 return False
-            
-            success = self.datafeed.delete_strategy_state_from_db(self.strategy_id, self.user_id)
-            
+
+            success = self.datafeed.delete_strategy_state_from_db(
+                self.strategy_id, self.user_id
+            )
+
             if success:
                 self._strategy_state.clear()
                 self._state_loaded = False
                 log(f"策略 {self.name} (ID: {self.strategy_id}) 状态已删除")
-            
+
             return success
-            
+
         except Exception as e:
             log(f"删除策略状态失败: {str(e)}", "error")
             return False
@@ -826,10 +852,10 @@ class BaseStrategy(ABC):
     def get_strategy_state_history(self, limit=10):
         """
         获取策略状态历史记录
-        
+
         Args:
             limit (int): 返回记录数量限制
-            
+
         Returns:
             list: 历史记录列表
         """
@@ -837,9 +863,11 @@ class BaseStrategy(ABC):
             if not self.user_id:
                 log(f"策略 {self.name} 用户ID未设置，无法获取状态历史", "warning")
                 return []
-            
-            return self.datafeed.get_strategy_state_history(self.strategy_id, self.user_id, limit)
-            
+
+            return self.datafeed.get_strategy_state_history(
+                self.strategy_id, self.user_id, limit
+            )
+
         except Exception as e:
             log(f"获取策略状态历史失败: {str(e)}", "error")
             return []
