@@ -54,6 +54,7 @@ class BaseStrategy(ABC):
         self._running = False
         self._thread = None
         self._deal_thread = None  # 新增交易信息处理线程
+        self._deal_lock = threading.Lock()  # 添加交易信息处理锁
         self._error_count = 10
         self._max_retries = 3  # 最大重试次数
         self._retry_delay = 5  # 重试延迟（秒）
@@ -105,6 +106,8 @@ class BaseStrategy(ABC):
 
         # 在策略初始化时自动加载状态
         self._load_strategy_state_on_init()
+
+    def on_post_init(self): ...
 
     def start(self):
         """启动策略线程"""
@@ -172,8 +175,9 @@ class BaseStrategy(ABC):
             # try:
             # 使用get_nowait()避免阻塞，如果队列为空则继续循环
             deal_info = self._deal_queue.get()
-            self._update_strategy_info(deal_info)
-            self.on_deal(deal_info)
+            with self._deal_lock:
+                self._update_strategy_info(deal_info)
+                self.on_deal(deal_info)
             time.sleep(0.1)
 
         # except Exception as e:
@@ -211,8 +215,8 @@ class BaseStrategy(ABC):
 
             self.on_bar(symbol, period, bar)
 
-            # 定期自动保存状态
-            self._auto_save_state()
+            # # 定期自动保存状态
+            # self._auto_save_state()
 
         # except Exception as e:
         #     log(f"策略 {self.name} 执行出错: {str(e)}", "error")
@@ -227,7 +231,7 @@ class BaseStrategy(ABC):
         log(f"策略 {self.name} 用户设置完成: {user_id}, 状态已加载")
 
     def _trade(
-        self, command_id, symbol, volume, follow_trade_info="", max_oder_size=-1
+        self, command_id, symbol, volume, follow_trade_info="", max_order_size=-1
     ):
         if max_order_size == -1:
             max_order_size = volume
@@ -240,7 +244,7 @@ class BaseStrategy(ABC):
                 "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
                 "orderType": 1101,
                 "orderCode": symbol,
-                "prType": 14,
+                "prType": 5,  # 14对手价，5最新价
                 "price": -1,
                 "volume": vol,
                 "strategyName": self.name,
@@ -312,27 +316,59 @@ class BaseStrategy(ABC):
         self.datafeed.create_trade_command(data)
 
     def close_combination(self, code_1, code_2, volume):
-        rest_volume = 0
-        comb_code = ""
         records = self.datafeed.get_comb_records(code_1, code_2, self.user_id)
+
         for record in records:
             if record.volume >= volume:
-                rest_volume = record.volume - volume
-                comb_code = record.comb_code
-                self.release_combination(record.comb_id, "1/1")
+                first_pos_type = (
+                    str(volume)
+                    if record.first_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                second_pos_type = (
+                    str(volume)
+                    if record.second_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                pos_type = "/".join(
+                    [
+                        first_pos_type,
+                        second_pos_type,
+                        str(
+                            OptionCombinationType.get_type_value_by_code(
+                                record.comb_code
+                            )
+                        ),
+                    ]
+                )
+
+                self.release_combination(record.comb_id, pos_type)
                 break
             else:
                 volume = volume - record.volume
-                self.release_combination(record.comb_id, "1/1")
-        if rest_volume > 0:
-            self.make_combination(
-                OptionCombinationType.get_type_value_by_code(comb_code),
-                f"{record.first_code}.{record.exchange_id}",
-                True if record.first_code_type == 48 else False,
-                f"{record.second_code}.{record.exchange_id}",
-                True if record.second_code_type == 48 else False,
-                rest_volume,
-            )
+                first_pos_type = (
+                    str(volume)
+                    if record.first_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                second_pos_type = (
+                    str(volume)
+                    if record.second_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                pos_type = "/".join(
+                    [
+                        first_pos_type,
+                        second_pos_type,
+                        str(
+                            OptionCombinationType.get_type_value_by_code(
+                                record.comb_code
+                            )
+                        ),
+                    ]
+                )
+
+                self.release_combination(record.comb_id, pos_type)
 
     def move_combination(
         self, code_1, code_2, target_code_1, target_code_2, volume
@@ -375,25 +411,28 @@ class BaseStrategy(ABC):
 
     def _update_strategy_info(self, deal_record):
         if "/" in deal_record.instrument_id:
-            if deal_record.direction == 48:  # 拆分组合
-                self.strategy_combinations.release(
-                    deal_record.instrument_id,
-                    deal_record.instrument_name,
-                    deal_record.volume,
-                )
-                self.strategy_account.set_last_account()
-
-                # 根据remark信息，执行拆分组合后的后续操作
-                self.after_release(
-                    deal_record.instrument_id, deal_record.volume, deal_record.remark
-                )
-            elif deal_record.direction == 49:  # 构造组合
+            if deal_record.direction == 48:  # 构造组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
                     deal_record.volume,
                 )
                 self.strategy_account.set_last_account()
+
+            elif deal_record.direction == 49:  # 拆分组合
+                self.strategy_combinations.release(
+                    deal_record.instrument_id,
+                    deal_record.instrument_name,
+                    deal_record.volume,
+                )
+                self.strategy_account.set_last_account()
+                # 根据remark信息，执行拆分组合后的后续操作
+                self.after_release(
+                    deal_record.instrument_id,
+                    deal_record.volume,
+                    deal_record.exchange_id,
+                    deal_record.remark,
+                )
         else:
             if deal_record.offset_flag == 48:  # 开仓
                 if deal_record.direction == 48:  # 买入
@@ -414,7 +453,7 @@ class BaseStrategy(ABC):
 
                 # 根据remark信息，执行开仓后的后续操作
                 self.after_open(
-                    deal_record.instrument_id,
+                    f"{deal_record.instrument_id}.{deal_record.exchange_id}",
                     deal_record.volume,
                     direction == 1,
                     deal_record.remark,
@@ -464,6 +503,8 @@ class BaseStrategy(ABC):
             else:
                 raise ValueError(f"未知的交易类型: {deal_record}")
 
+        time.sleep(0.01)
+
     def _on_data_arrived(self, symbol, period, bar):
         """处理接收到的数据"""
         self._queue.put((symbol, period, bar))
@@ -479,51 +520,63 @@ class BaseStrategy(ABC):
         info = remark.split("|")
         return {"strategy_id": info[0]}
 
-    def after_release(self, comb_symbol, volume, remark):
+    def after_release(self, comb_symbol, volume, exchange_id, remark):
         """
         拆分组合后的后续操作信息,组合的备注信息格式如下：
         策略ID|uuid|a/b|symbol1/symbol2
-        a/b: 解除后是否平仓合约，0:不平仓，1:平仓
+        a/b: 解除后是否平仓合约，0:不平仓，1:权利仓平仓, -1：义务仓平仓
         symbol1/symbol2: 平仓后是否开仓（移仓）symbol1和symbol2不为空就开仓，否则不操作
         """
         origin_code_1, origin_code_2 = comb_symbol.split("/")
-        comb_info = self.datafeed.get_comb_info(
-            origin_code_1, origin_code_2, self.user_id
-        )
-
         info = remark.split("|")
-        close_flag_1, close_flag_2 = info[2].split("/") if len(info) >= 3 else (0, 0)
+        close_flag_1, close_flag_2, comb_type = (
+            info[2].split("/") if len(info) >= 3 else (0, 0, 0)
+        )
+        close_flag_1 = int(close_flag_1)
+        close_flag_2 = int(close_flag_2)
+        comb_type = int(comb_type)
+
         next_symbol_1, next_symbol_2 = (
             info[3].split("/") if len(info) >= 4 else ("", "")
         )
-        pos_type_1 = "1" if comb_info[origin_code_1] == 48 else "-1"
-        pos_type_2 = "1" if comb_info[origin_code_2] == 48 else "-1"
-        if close_flag_1 == "1":
-            if comb_info[origin_code_1] == 48:  # 权利仓
-                self.sell_close(
-                    origin_code_1,
-                    volume,
-                    "|".join([next_symbol_1, next_symbol_2, pos_type_2]),
-                )
-            elif comb_info[origin_code_1] == 49:  # 义务仓
-                self.buy_close(
-                    origin_code_1,
-                    volume,
-                    "|".join([next_symbol_1, next_symbol_2, pos_type_2]),
-                )
-        if close_flag_2 == "1":
-            if comb_info[origin_code_2] == 48:  # 权利仓
-                self.sell_close(
-                    origin_code_2,
-                    volume,
-                    "|".join([next_symbol_2, next_symbol_1, pos_type_1]),
-                )
-            elif comb_info[origin_code_2] == 49:  # 义务仓
-                self.buy_close(
-                    origin_code_2,
-                    volume,
-                    "|".join([next_symbol_2, next_symbol_1, pos_type_1]),
-                )
+
+        rest_vol = volume - abs(close_flag_1)
+        volume = abs(close_flag_1)
+
+        if close_flag_1 > 0:  # 权利仓
+            self.sell_close(
+                f"{origin_code_1}.{exchange_id}",
+                volume,
+                "|".join([next_symbol_1, next_symbol_2, "1"]),
+            )
+        elif close_flag_1 < 0:  # 义务仓
+            self.buy_close(
+                f"{origin_code_1}.{exchange_id}",
+                volume,
+                "|".join([next_symbol_1, next_symbol_2, "-1"]),
+            )
+        if close_flag_2 > 0:
+            self.sell_close(
+                f"{origin_code_2}.{exchange_id}",
+                volume,
+                "|".join([next_symbol_2, next_symbol_1, "1"]),
+            )
+        elif close_flag_2 < 0:  # 义务仓
+            self.buy_close(
+                f"{origin_code_2}.{exchange_id}",
+                volume,
+                "|".join([next_symbol_2, next_symbol_1, "-1"]),
+            )
+
+        if rest_vol > 0:
+            self.make_combination(
+                comb_type,
+                f"{origin_code_1}.{exchange_id}",
+                close_flag_1 > 0,
+                f"{origin_code_2}.{exchange_id}",
+                close_flag_2 > 0,
+                rest_vol,
+            )
 
     def after_close(self, volume, is_buyer=True, remark=""):
         """
@@ -581,7 +634,7 @@ class BaseStrategy(ABC):
                 opposite_strike,
                 opposite_type,
             )
-            second_opt = (True, symbol, strike, pos_type)
+            second_opt = (True if int(value) > 0 else False, symbol, strike, pos_type)
 
         comb_type = None
         if first_opt[0]:  # 价差组合
@@ -593,7 +646,7 @@ class BaseStrategy(ABC):
             else:
                 if first_opt[2] < second_opt[2]:  # 认沽牛市价差
                     comb_type = OptionCombinationType.BULL_PUT_SPREAD
-                else:  # 认沽牛市价差
+                else:  # 认沽熊市价差
                     comb_type = OptionCombinationType.BEAR_PUT_SPREAD
 
         elif first_opt[2] == second_opt[2]:  # 跨式组合
@@ -623,12 +676,12 @@ class BaseStrategy(ABC):
             current_time = time.time()
 
             # 检查是否需要保存（除非强制保存）
-            if (
-                not force_save
-                and (current_time - self._last_state_save_time)
-                < self._state_auto_save_interval
-            ):
-                return
+            # if (
+            #     not force_save
+            #     and (current_time - self._last_state_save_time)
+            #     < self._state_auto_save_interval
+            # ):
+            #     return
 
             # 确定要保存的数据
             if state_data is None:
@@ -768,10 +821,10 @@ class BaseStrategy(ABC):
         # 延迟加载，等待user_id设置
         pass
 
-    def _auto_save_state(self):
-        """自动保存状态（在策略运行过程中定期调用）"""
-        # 对于分钟级策略，可以禁用定时保存，改为状态变化时立即保存
-        pass
+    # def _auto_save_state(self):
+    #     """自动保存状态（在策略运行过程中定期调用）"""
+    #     # 对于分钟级策略，可以禁用定时保存，改为状态变化时立即保存
+    #     pass
 
     def _ensure_state_loaded(self):
         """确保状态已加载"""
@@ -1067,9 +1120,8 @@ class StrategyPosition:
         self.positions = df.reset_index(drop=True)
 
         # 如果当天是交易日，却没有持仓记录，则保存最新持仓
-        if (
-            self.datafeed.trade_calendar.is_trade_date(today)
-            and self.positions.iloc[0]["created"].date() != today
+        if self.datafeed.trade_calendar.is_trade_date(today) and (
+            self.positions.empty or self.positions.iloc[0]["created"].date() != today
         ):
             self.save()
 
@@ -1212,7 +1264,10 @@ class StrategyPosition:
         pos = self.positions.loc[self.positions["instrument_id"] == symbol]
         if pos.empty:
             return 0
-        return pos["volume"].item()
+        if len(pos) == 1:
+            return pos["volume"].item()
+        else:
+            return pos["volume"].sum().item()
 
     def get_commission(self, symbol):
         pos = self.positions.loc[self.positions["instrument_id"] == symbol]
