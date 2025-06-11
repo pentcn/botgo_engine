@@ -30,27 +30,28 @@ def get_user_name(user_id):
 
 
 def start_strategy(strategy, datafeed):
-    try:
-        user_name = get_user_name(strategy.user)
-        log(f"启动策略: {strategy.name} (用户: {user_name}, id={strategy.id})")
+    # try:
+    user_name = get_user_name(strategy.user)
+    log(f"启动策略: {strategy.name} (用户: {user_name}, id={strategy.id})")
 
-        # 创建策略实例
-        strategy_instance = StrategyFactory.create_strategy(
-            datafeed, strategy.id, strategy.name, strategy.params
-        )
-        strategy_instance.set_user(strategy.user)
+    # 创建策略实例
+    strategy_instance = StrategyFactory.create_strategy(
+        datafeed, strategy.id, strategy.name, strategy.params
+    )
+    strategy_instance.set_user(strategy.user)
 
-        # 启动策略
-        strategy_instance.start()
+    # 启动策略
+    strategy_instance.start()
 
-        strategy_instance.on_post_init()
+    strategy_instance.on_post_init()
 
-        # 保存策略实例
-        with _strategies_lock:
-            running_strategies[strategy.id] = strategy_instance
+    # 保存策略实例
+    with _strategies_lock:
+        running_strategies[strategy.id] = strategy_instance
 
-    except Exception as e:
-        log(f"启动策略失败: {str(e)}", "error")
+
+# except Exception as e:
+#     log(f"启动策略失败: {str(e)}", "error")
 
 
 def stop_strategy(strategy):
@@ -102,25 +103,21 @@ def start_active_strategies(datafeed):
     client = get_pb_client()
     service = client.collection("strategies")
 
-    try:
-        # 获取所有活跃的策略，并展开用户关系
-        active_strategies = service.get_full_list(
-            100, {"filter": "active = true", "expand": "user"}
-        )
-
-        if len(active_strategies) == 0:
-            log("没有找到活跃的策略")
-            return
-
-        log(f"找到 {len(active_strategies)} 个活跃的策略")
-
-        # 启动每个活跃的策略
-        for strategy in active_strategies:
-            if strategy.id not in running_strategies:
-                start_strategy(strategy, datafeed)
-
-    except Exception as e:
-        log(f"启动活跃策略时发生错误: {str(e)}", "error")
+    # try:
+    # 获取所有活跃的策略，并展开用户关系
+    active_strategies = service.get_full_list(
+        100, {"filter": "active = true", "expand": "user"}
+    )
+    if len(active_strategies) == 0:
+        log("没有找到活跃的策略")
+        return
+    log(f"找到 {len(active_strategies)} 个活跃的策略")
+    # 启动每个活跃的策略
+    for strategy in active_strategies:
+        if strategy.id not in running_strategies:
+            start_strategy(strategy, datafeed)
+    # except Exception as e:
+    #     log(f"启动活跃策略时发生错误: {str(e)}", "error")
 
 
 def monitor_strategies():

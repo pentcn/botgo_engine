@@ -457,16 +457,16 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "filter": f'user="{user_id}" && firstCode="{code_1}" && secondCode="{code_2}"'
             },
         )
-        if len(records) == 0:
-            # code_1, code_2 = code_2, code_1
-            records = self.client.collection("combinations").get_full_list(
-                -1,
-                {
-                    "filter": f'user="{user_id}" && firstCode="{code_2}" && secondCode="{code_1}"'
-                },
-            )
-            if len(records) == 0:
-                return None
+        # if len(records) == 0:
+        #     # code_1, code_2 = code_2, code_1
+        #     records = self.client.collection("combinations").get_full_list(
+        #         -1,
+        #         {
+        #             "filter": f'user="{user_id}" && firstCode="{code_2}" && secondCode="{code_1}"'
+        #         },
+        #     )
+        #     if len(records) == 0:
+        #         return None
 
         return records
 

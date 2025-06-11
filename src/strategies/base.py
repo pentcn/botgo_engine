@@ -370,34 +370,64 @@ class BaseStrategy(ABC):
 
                 self.release_combination(record.comb_id, pos_type)
 
-    def move_combination(
-        self, code_1, code_2, target_code_1, target_code_2, volume
-    ):  # noqa
-        rest_volume = 0
-        comb_code = ""
+    def move_combination(self, code_1, code_2, target_code_1, target_code_2, volume):
         records = self.datafeed.get_comb_records(code_1, code_2, self.user_id)
+        if records is None:
+            log(f"不存在满足条件的组合{code_1}/{code_2}, 无法完成组合移仓")
+            return
+
         for record in records:
             if record.volume >= volume:
-                rest_volume = record.volume - volume
-                comb_code = record.comb_code
-                self.release_combination(
-                    record.comb_id, f"1/1|{target_code_1}/{target_code_2}"
+                first_pos_type = (
+                    str(volume)
+                    if record.first_code_pos_type == 48
+                    else f"{-1 * volume}"
                 )
+                second_pos_type = (
+                    str(volume)
+                    if record.second_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                pos_type = "/".join(
+                    [
+                        first_pos_type,
+                        second_pos_type,
+                        str(
+                            OptionCombinationType.get_type_value_by_code(
+                                record.comb_code
+                            )
+                        ),
+                    ]
+                )
+                remark = f"{pos_type}|{target_code_1}/{target_code_2}"
+
+                self.release_combination(record.comb_id, remark)
                 break
             else:
                 volume = volume - record.volume
-                self.release_combination(
-                    record.comb_id, f"1/1|{target_code_1}/{target_code_2}"
+                first_pos_type = (
+                    str(volume)
+                    if record.first_code_pos_type == 48
+                    else f"{-1 * volume}"
                 )
-        if rest_volume > 0:
-            self.make_combination(
-                OptionCombinationType.get_type_value_by_code(comb_code),
-                f"{record.first_code}.{record.exchange_id}",
-                True if record.first_code_type == 48 else False,
-                f"{record.second_code}.{record.exchange_id}",
-                True if record.second_code_type == 48 else False,
-                rest_volume,
-            )
+                second_pos_type = (
+                    str(volume)
+                    if record.second_code_pos_type == 48
+                    else f"{-1 * volume}"
+                )
+                pos_type = "/".join(
+                    [
+                        first_pos_type,
+                        second_pos_type,
+                        str(
+                            OptionCombinationType.get_type_value_by_code(
+                                record.comb_code
+                            )
+                        ),
+                    ]
+                )
+                remark = f"{pos_type}|{target_code_1}/{target_code_2}"
+                self.release_combination(record.comb_id, remark)
 
     @abstractmethod
     def on_bar(self, symbol, period, bar):
@@ -543,29 +573,31 @@ class BaseStrategy(ABC):
         rest_vol = volume - abs(close_flag_1)
         volume = abs(close_flag_1)
 
+        waiting_comb_flag_1 = "1" if close_flag_1 > 0 else "-1"
+        waiting_comb_flag_2 = "1" if close_flag_2 > 0 else "-1"
         if close_flag_1 > 0:  # 权利仓
             self.sell_close(
                 f"{origin_code_1}.{exchange_id}",
                 volume,
-                "|".join([next_symbol_1, next_symbol_2, "1"]),
+                "|".join([next_symbol_1, next_symbol_2, "1", waiting_comb_flag_2]),
             )
         elif close_flag_1 < 0:  # 义务仓
             self.buy_close(
                 f"{origin_code_1}.{exchange_id}",
                 volume,
-                "|".join([next_symbol_1, next_symbol_2, "-1"]),
+                "|".join([next_symbol_1, next_symbol_2, "-1", waiting_comb_flag_2]),
             )
         if close_flag_2 > 0:
             self.sell_close(
                 f"{origin_code_2}.{exchange_id}",
                 volume,
-                "|".join([next_symbol_2, next_symbol_1, "1"]),
+                "|".join([next_symbol_2, next_symbol_1, "1", waiting_comb_flag_1]),
             )
         elif close_flag_2 < 0:  # 义务仓
             self.buy_close(
                 f"{origin_code_2}.{exchange_id}",
                 volume,
-                "|".join([next_symbol_2, next_symbol_1, "-1"]),
+                "|".join([next_symbol_2, next_symbol_1, "-1", waiting_comb_flag_1]),
             )
 
         if rest_vol > 0:
@@ -603,7 +635,7 @@ class BaseStrategy(ABC):
         a=1：表明构造组合的symbol为权利仓 ; a=-1表明义务仓
         """
         info = remark.split("|")
-        value = info[3] if len(info) >= 4 else ""
+        value = info[4] if len(info) >= 5 else ""
         opposite_is_buyer = True if value == "1" else False
         opposite_symbol = info[2] if len(info) >= 3 else ""
         opposite_strike, opposite_type = self.datafeed.get_strike(opposite_symbol)
