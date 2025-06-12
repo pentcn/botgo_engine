@@ -43,8 +43,6 @@ def start_strategy(strategy, datafeed):
     # 启动策略
     strategy_instance.start()
 
-    strategy_instance.on_post_init()
-
     # 保存策略实例
     with _strategies_lock:
         running_strategies[strategy.id] = strategy_instance

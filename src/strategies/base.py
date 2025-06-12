@@ -107,6 +107,9 @@ class BaseStrategy(ABC):
         # 在策略初始化时自动加载状态
         self._load_strategy_state_on_init()
 
+        # 标记策略是否初始化完成,即on_post_init方法是否执行完成
+        self.has_init = False
+
     def on_post_init(self): ...
 
     def start(self):
@@ -178,7 +181,7 @@ class BaseStrategy(ABC):
             with self._deal_lock:
                 self._update_strategy_info(deal_info)
                 self.on_deal(deal_info)
-            time.sleep(0.1)
+            time.sleep(0.01)
 
         # except Exception as e:
         #     log(f"策略 {self.name} 处理交易信息时出错: {str(e)}", "error")
@@ -201,6 +204,10 @@ class BaseStrategy(ABC):
             if self.strategy_account is None:
                 self.strategy_account = StrategyAccount(self)
                 self.strategy_account.refresh()
+
+            if not self.has_init:
+                self.has_init = True
+                self.on_post_init()
 
             # 处理K线数据
             symbol, period, bar = (
