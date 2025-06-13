@@ -1425,6 +1425,35 @@ class StrategyCombination:
                 new_volume,
             )
 
+    def get_combs_profit_info(self):
+        info = []
+        for _, row in self.combinations.iterrows():
+            pair = row["instrument_id"].split("/")
+            pos = self.strategy.strategy_account.positions[
+                self.strategy.strategy_account.positions["instrument_id"].isin(pair)
+            ]
+            if len(pos) == 2:
+                pos = pos.sort_values(
+                    by="direction", ascending=False
+                )  # 如果是价差组合，确保买方在前面
+                profit = (
+                    (pos["price"] - pos["open_price"])
+                    * pos["direction"]
+                    * row["volume"]
+                )
+                profit = profit.sum() * pos.iloc[0]["vol_mul"].item()
+                info.append(
+                    {
+                        "code_1": f"{pos.iloc[0]['instrument_id']}.{pos.iloc[0]['exchange_id']}",
+                        "code_2": f"{pos.iloc[1]['instrument_id']}.{pos.iloc[1]['exchange_id']}",
+                        "profit": profit,
+                        "volume": row["volume"],
+                    }
+                )
+        if len(info) == 0:
+            return pd.DataFrame()
+        return pd.DataFrame(info)
+
 
 class StrategyAccount:
     def __init__(self, strategy):
@@ -1498,6 +1527,58 @@ class StrategyAccount:
                     comb_margin = comb_margin * row["volume"]  # noqa
                     total_margin = total_margin + (comb_margin - pos["margin"].sum())
         return total_margin
+
+    def get_month_margin(self, month, opt_type="BOTH"):
+        """
+        返回指定月度、指定合约类型的保证金（float）
+        :param month: 月度（int）
+        :param opt_type: "BOTH"/"CALL"/"PUT"
+        :return: float
+        """
+        margin_total = 0.0
+        for idx, row in self.positions.iterrows():
+            if opt_type != "BOTH" and row["opt_type"] != opt_type:
+                continue
+            info = self.datafeed.get_contract_info(row["instrument_id"])
+            if info is None or info["monthly"] != month:
+                continue
+            margin = row["margin"] if not pd.isna(row["margin"]) else 0
+            margin_total += margin
+
+        combinations = self.strategy.strategy_combinations.combinations
+        for _, comb_row in combinations.iterrows():
+            pair = comb_row["instrument_id"].split("/")
+            pos = self.positions[self.positions["instrument_id"].isin(pair)]
+            pos = pos.sort_values(by="direction", ascending=False)
+            if len(pos) == 2:
+                info0 = self.datafeed.get_contract_info(pos.iloc[0]["instrument_id"])
+                comb_month = info0["monthly"] if info0 else None
+                if comb_month != month:
+                    continue
+                if opt_type != "BOTH" and pos["opt_type"].iloc[0] != opt_type:
+                    continue
+                if pos["direction"].prod() < 0:  # 价差组合
+                    diff = abs(pos["strike"].diff().iloc[1]) * pos["vol_mul"].iloc[0]
+                    if (
+                        pos["opt_type"].iloc[0] == "CALL"
+                        and pos["strike"].iloc[0] < pos["strike"].iloc[1]
+                    ) or (
+                        pos["opt_type"].iloc[0] == "PUT"
+                        and pos["strike"].iloc[0] > pos["strike"].iloc[1]
+                    ):
+                        comb_margin = 0
+                    else:
+                        comb_margin = abs(diff * comb_row["volume"] * 1.06)
+                    old_margin = pos["margin"] / pos["volume"] * comb_row["volume"]
+                    old_margin = old_margin.sum()
+                    margin_total += comb_margin - old_margin
+                if pos["direction"].prod() > 0:  # 跨式或宽跨式组合
+                    comb_margin = (pos["margin"] / pos["volume"]).max() + (
+                        pos["price"] / pos["volume"]
+                    ).min()
+                    comb_margin = comb_margin * comb_row["volume"]  # noqa
+                    margin_total += comb_margin - pos["margin"].sum()
+        return margin_total
 
     def set_last_account(self):
         def reset_account():
@@ -1579,13 +1660,14 @@ class StrategyAccount:
             try:
                 row = self.datafeed.option_contracts.loc[
                     self.datafeed.option_contracts["InstrumentID"] == id,
-                    ["OptExercisePrice", "VolumeMultiple", "OptType"],
+                    ["OptExercisePrice", "VolumeMultiple", "OptType", "ExchangeID"],
                 ].iloc[0]
                 return pd.Series(
                     {
                         "strike": row["OptExercisePrice"],
                         "vol_mul": row["VolumeMultiple"],
                         "opt_type": row["OptType"],
+                        "exchange_id": row["ExchangeID"],
                     }
                 )
             except IndexError:
@@ -1605,7 +1687,7 @@ class StrategyAccount:
                 item["instrument_id"]: item["price"] for item in risks
             }  # noqa
             positions["price"] = positions["instrument_id"].map(price_dict)  # noqa
-            positions[["strike", "vol_mul", "opt_type"]] = positions[
+            positions[["strike", "vol_mul", "opt_type", "exchange_id"]] = positions[
                 "instrument_id"
             ].apply(get_option_details)
 
@@ -1672,3 +1754,23 @@ class StrategyAccount:
 
     def adjust_available_margin(self, value):
         self.account["available_margin"] += value
+
+    def get_uncomb_position(self, opt_type="CALL", is_seller=True):
+        direction = -1 if is_seller else 1
+        for _, row in self.strategy.strategy_combinations.combinations.iterrows():
+            pair = row["instrument_id"].split("/")
+            comb_volume = row["volume"]
+            for instrument_id in pair:
+                pos = self.positions[self.positions["instrument_id"] == instrument_id]
+                if (
+                    len(pos) == 1
+                    and pos["direction"].item() == direction
+                    and pos["opt_type"].item() == opt_type
+                ):
+                    volume = pos["volume"].item()
+                    if volume > comb_volume:
+                        return (
+                            f'{instrument_id}.{pos["exchange_id"].item()}',
+                            volume - comb_volume,
+                        )
+        return None, None
