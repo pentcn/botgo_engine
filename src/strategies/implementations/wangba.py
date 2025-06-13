@@ -45,7 +45,7 @@ class WangBaStrategy(BaseStrategy):
         # self.run_test_scene_8()
         # self.run_test_scene_9() # 未通过，可能是测试服务器的问题
         # self.run_test_scene_10()  # 未通过，可能是测试服务器的问题
-        self.run_test_scene_11()  #
+        # self.run_test_scene_11()  #
 
         print("以上测试通过了，需要测试各种组合的移仓操作")
 

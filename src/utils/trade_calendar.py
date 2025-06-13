@@ -27,11 +27,12 @@ class TradeCalendar:
     def _get_online_dates(self):
         dates = ak.tool_trade_date_hist_sina()
         dates = dates.loc[dates["trade_date"] >= date(2025, 1, 1)].copy()
+        dates = dates.reset_index(drop=True)
         # 确保 trade_date 是 datetime 类型
         dates["trade_date"] = pd.to_datetime(dates["trade_date"])
 
         # 标注每月第4个星期三
-        dates["is_4th_wed"] = False
+        # dates["is_4th_wed"] = False
         # 按年和月分组
         for (year, month), group in dates.groupby(
             [dates["trade_date"].dt.year, dates["trade_date"].dt.month]
@@ -45,31 +46,32 @@ class TradeCalendar:
         return dates
 
     def _add_trade_dates_groups(self, trade_dates):
-        trade_dates.loc[trade_dates["expired_date"] == 1, "next_trade_date"] = (
-            trade_dates.loc[trade_dates["expired_date"] == 1, "trade_date"].index
+        trade_dates.loc[
+            trade_dates["expired_date"] == 1, "next_month_expired_index"
+        ] = trade_dates.loc[trade_dates["expired_date"] == 1, "trade_date"].index
+        trade_dates.loc[
+            trade_dates["expired_date"] == 1, "next_month_expired_index"
+        ] = trade_dates.loc[
+            trade_dates["expired_date"] == 1, "next_month_expired_index"
+        ].shift(
+            -1
         )
-        trade_dates.loc[trade_dates["expired_date"] == 1, "next_trade_date"] = (
-            trade_dates.loc[trade_dates["expired_date"] == 1, "next_trade_date"].shift(
-                -1
-            )
-        )
-        trade_dates.loc[trade_dates["expired_date"] == 1, "next_trade_date_count"] = (
-            trade_dates.loc[trade_dates["expired_date"] == 1, "next_trade_date"]
+        trade_dates.loc[trade_dates["expired_date"] == 1, "month_trade_days"] = (
+            trade_dates.loc[
+                trade_dates["expired_date"] == 1, "next_month_expired_index"
+            ]
             - trade_dates.loc[trade_dates["expired_date"] == 1].index
-            - 1
         )
         start = trade_dates.loc[trade_dates["expired_date"] == 1].index[0]
         trade_dates = trade_dates.loc[start:]
-        trade_dates["next_trade_date_count"] = trade_dates[
-            "next_trade_date_count"
-        ].ffill()
+        trade_dates["month_trade_days"] = trade_dates["month_trade_days"].ffill()
+        trade_dates["month_trade_days"] = trade_dates["month_trade_days"].shift(1)
         trade_dates.reset_index(drop=True, inplace=True)
         changes = (
-            trade_dates["next_trade_date_count"]
-            != trade_dates["next_trade_date_count"].shift()
+            trade_dates["month_trade_days"] != trade_dates["month_trade_days"].shift()
         )
         trade_dates["group"] = changes.cumsum()
-        trade_dates["group_id"] = trade_dates.groupby("group").cumcount() + 1
+        trade_dates["day_index_in_month"] = trade_dates.groupby("group").cumcount() + 1
         return trade_dates
 
     def _get_4th_wed(self, year, month):
@@ -96,8 +98,18 @@ class TradeCalendar:
     def is_trade_date(self, date):
         return date in self.trade_dates["trade_date"].dt.date.tolist()
 
+    def get_day_info(self, date):
+        info = self.trade_dates.loc[self.trade_dates["trade_date"].dt.date == date]
+        if not info.empty:
+            return {
+                "is_expired_date": (info.iloc[0]["expired_date"] == 1).item(),
+                "trading_days_in_month": info.iloc[0]["month_trade_days"],
+                "day_index_in_month": info.iloc[0]["day_index_in_month"],
+            }
+
 
 if __name__ == "__main__":
     trade_calendar = TradeCalendar()
+    trade_calendar._get_online_dates()
     print(trade_calendar.trade_dates)
     print(trade_calendar.get_pre_trade_date(datetime.now().date()))
