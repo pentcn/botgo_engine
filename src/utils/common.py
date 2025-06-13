@@ -35,8 +35,8 @@ def record2dataframe(records):
             for name in dir(record)
             if (
                 not name.startswith("_")
-                and not name
-                in [
+                and name
+                not in [
                     "collection_id",
                     "collection_name",
                     "is_new",
@@ -63,6 +63,26 @@ def decompose(n, m):
         return [m] * q + [r]
 
 
+class SeriesWrapper:
+    def __init__(self, series):
+        self._series = series
+
+    def __getitem__(self, index):
+        # 支持负索引，自动用 iloc
+        if isinstance(index, int) and index < 0:
+            return self._series.iloc[index]
+        return self._series[index]
+
+    def __getattr__(self, name):
+        return getattr(self._series, name)
+
+    def __repr__(self):
+        return repr(self._series)
+
+    def __call__(self):
+        return self._series
+
+
 class DataFrameWrapper:
     def __init__(self, dataframe):
         self._df = dataframe
@@ -71,10 +91,12 @@ class DataFrameWrapper:
         """通过索引直接访问行 (支持负数及切片)"""
         return self._df.iloc[index]
 
-    # 可选：保留直接操作原 DataFrame 的能力
     def __getattr__(self, name):
-        """将未定义属性访问转发到内部 DataFrame"""
-        return getattr(self._df, name)
+        attr = getattr(self._df, name)
+        # 如果是 Series，返回 SeriesWrapper
+        if isinstance(attr, pd.Series):
+            return SeriesWrapper(attr)
+        return attr
 
     def __call__(self):
         return self._df

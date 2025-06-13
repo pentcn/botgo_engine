@@ -1449,206 +1449,55 @@ class StrategyAccount:
             }
         self.set_last_account()
 
-    def set_last_account2(self):
-        def calcuate_greeks(positions, risks):
-
-            # 按合约计算卖方保证金
-            positions["per_margin"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["margin"] for risk in risks}
-            )
-            positions["margin"] = 0
-            positions.loc[positions["direction"] == -1, "margin"] = (
-                positions["per_margin"] * positions["volume"]
-            )
-
-            # 计算delta
-            positions["per_delta"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["delta"] for risk in risks}
-            )
-            positions["delta"] = (
-                positions["per_delta"] * positions["volume"] * positions["direction"]
-            )
-
-            # 计算gamma
-            positions["per_gamma"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["gamma"] for risk in risks}
-            )
-            positions["gamma"] = (
-                positions["per_gamma"] * positions["volume"] * positions["direction"]
-            )
-
-            # 计算vega
-            positions["per_vega"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["vega"] for risk in risks}
-            )
-            positions["vega"] = (
-                positions["per_vega"] * positions["volume"] * positions["direction"]
-            )
-
-            # 计算theta
-            positions["per_theta"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["theta"] for risk in risks}
-            )
-            positions["theta"] = (
-                positions["per_theta"] * positions["volume"] * positions["direction"]
-            )
-
-            # 计算pho
-            positions["per_rho"] = positions["instrument_id"].map(
-                {risk["instrument_id"]: risk["rho"] for risk in risks}
-            )
-            positions["rho"] = (
-                positions["per_rho"] * positions["volume"] * positions["direction"]
-            )
-            del positions["per_margin"]
-            del positions["per_delta"]
-            del positions["per_gamma"]
-            del positions["per_vega"]
-            del positions["per_theta"]
-            del positions["per_rho"]
-            return positions
-
-        def get_element_from_risks(risks, instrument_id):
-            for risk in risks:
-                if risk["instrument_id"] == instrument_id:
-                    return risk
-            return None
-
-        def adjust_margin_by_combinations(init_margin):
-            total_margin = init_margin
-            combinations = self.strategy.strategy_combinations.combinations
-            for _, row in combinations.iterrows():
-                pair = row["instrument_id"].split("/")
-                strikes = list(
-                    map(
-                        lambda x: self.datafeed.option_contracts.loc[
-                            self.datafeed.option_contracts["InstrumentID"] == x
-                        ],
-                        pair,
-                    )
-                )
-
-                if len(strikes) == 2:
-                    strike_1 = strikes[0]["OptExercisePrice"].item()
-                    strike_2 = strikes[1]["OptExercisePrice"].item()
-
-                    item = get_element_from_risks(risks, pair[0])
-                    if item is None:
-                        return
-                    delta_1 = item["delta"]
-                    item = get_element_from_risks(risks, pair[1])
-                    if item is None:
-                        return
-                    delta_2 = item["delta"]
-                    if delta_1 * delta_2 > 0:  # 价差组合
-                        diff = (strike_1 - strike_2) * strikes[0][
-                            "VolumeMultiple"
-                        ].item()
-                        if (delta_1 > 0 and strike_1 < strike_2) or (
-                            delta_1 < 0 and strike_1 > strike_2
-                        ):  # 认购牛市或认沽熊市
-                            comb_margin = 0
-                        else:  # 认购熊市或认沽牛市
-                            comb_margin = abs(diff * row["volume"] * 1.06)
-                        old_margin = (
-                            get_element_from_risks(risks, pair[0])["margin"]
-                            * row["volume"]
-                        )
-                        total_margin = total_margin + comb_margin - old_margin
-                    elif delta_1 * delta_2 < 0:  # 跨式或宽跨式组合
-                        margin_1 = get_element_from_risks(risks, pair[0])[
-                            "margin"
-                        ]  # noqa
-                        margin_2 = get_element_from_risks(risks, pair[1])[
-                            "margin"
-                        ]  # noqa
-                        price_1 = get_element_from_risks(risks, pair[0])[
-                            "price"
-                        ]  # noqa
-                        price_2 = get_element_from_risks(risks, pair[1])[
-                            "price"
-                        ]  # noqa
-                        comb_margin = max(margin_1, margin_2) + min(
-                            price_1, price_2
-                        )  # noqa
-                        total_margin = (
-                            total_margin
-                            + (comb_margin - margin_1 - margin_2)
-                            * row["volume"]  # noqa
-                        )
-                    else:
-                        log(f"未知的组合类型: {row['instrument_name']}", "error")
-            return total_margin
-
-        if self.strategy.strategy_positions is not None:
-            symbols = self.strategy.strategy_positions.get_active_symbols()
-            risks = self.datafeed.calcuate_risk(symbols)
-            if risks is None:
-                return
-            positions = self.strategy.strategy_positions.positions.copy()
-            if positions.empty:
-                if self.account != {}:
-                    self.account = {
-                        "margin": 0,
-                        "available_margin": self.account["available_margin"]
-                        + self.account["margin"],
-                        "init_cash": self.account["init_cash"],
-                        "profit": self.account["profit"],
-                        "delta": 0,
-                        "gamma": 0,
-                        "vega": 0,
-                        "theta": 0,
-                        "rho": 0,
-                    }
-                    self.save()
-                return
-            self.positions = calcuate_greeks(positions, risks)
-            price_dict = {
-                item["instrument_id"]: item["price"] for item in risks
-            }  # noqa
-            self.positions["price"] = self.positions["instrument_id"].map(
-                price_dict
-            )  # noqa
-
+    def adjust_margin_by_comb(self, opt_type="BOTH"):
+        if opt_type == "BOTH":
             total_margin = self.positions["margin"].sum()
-            total_margin = adjust_margin_by_combinations(total_margin)
-            if total_margin is None:
-                total_margin = 0
-            else:
-                total_margin = total_margin.item()
-            floating_profit = (
-                self.positions["price"] - self.positions["open_price"]
-            )  # noqa
-            floating_profit = floating_profit * self.positions["volume"]
-            floating_profit = floating_profit * self.positions["direction"]
-            floating_profit = floating_profit.sum() * 10000
+        elif opt_type == "CALL":
+            total_margin = self.positions[self.positions["opt_type"] == "CALL"][
+                "margin"
+            ].sum()
+        elif opt_type == "PUT":
+            total_margin = self.positions[self.positions["opt_type"] == "PUT"][
+                "margin"
+            ].sum()
+        else:
+            raise ValueError(f"Invalid option type: {opt_type}")
+        if total_margin is None:
+            total_margin = 0
+        else:
+            total_margin = total_margin.item()
 
-            buyer_position = self.positions[self.positions["direction"] == 1]
-            cost = (
-                buyer_position["open_price"] * buyer_position["volume"]
-            ).sum()  # noqa
+        combinations = self.strategy.strategy_combinations.combinations
+        for _, row in combinations.iterrows():
+            pair = row["instrument_id"].split("/")
+            pos = self.positions[self.positions["instrument_id"].isin(pair)]
+            pos = pos.sort_values(by="direction", ascending=False)
 
-            available_margin = (
-                self.account["init_cash"]
-                + self.account["profit"]
-                - total_margin
-                - self.positions["commission"].sum()
-                - cost
-                + floating_profit
-            )
-            self.account = {
-                "margin": total_margin,
-                "available_margin": available_margin,
-                "init_cash": self.account["init_cash"],
-                "profit": self.account["profit"],
-                "delta": self.positions["delta"].sum(),
-                "gamma": self.positions["gamma"].sum(),
-                "vega": self.positions["vega"].sum(),
-                "theta": self.positions["theta"].sum(),
-                "rho": self.positions["rho"].sum(),
-            }
-
-            self.save()
+            if len(pos) == 2:
+                if opt_type != "BOTH" and pos["opt_type"].iloc[0] != opt_type:
+                    continue
+                if pos["direction"].prod() < 0:  # 价差组合
+                    diff = abs(pos["strike"].diff().iloc[1]) * pos["vol_mul"].iloc[0]
+                    if (
+                        pos["opt_type"].iloc[0] == "CALL"
+                        and pos["strike"].iloc[0] < pos["strike"].iloc[1]
+                    ) or (
+                        pos["opt_type"].iloc[0] == "PUT"
+                        and pos["strike"].iloc[0] > pos["strike"].iloc[1]
+                    ):
+                        comb_margin = 0
+                    else:
+                        comb_margin = abs(diff * row["volume"] * 1.06)
+                    old_margin = pos["margin"] / pos["volume"] * row["volume"]
+                    old_margin = old_margin.sum()
+                    total_margin = total_margin + comb_margin - old_margin
+                if pos["direction"].prod() > 0:  # 跨式或宽跨式组合
+                    comb_margin = (pos["margin"] / pos["volume"]).max() + (
+                        pos["price"] / pos["volume"]
+                    ).min()
+                    comb_margin = comb_margin * row["volume"]  # noqa
+                    total_margin = total_margin + (comb_margin - pos["margin"].sum())
+        return total_margin
 
     def set_last_account(self):
         def reset_account():
@@ -1742,62 +1591,32 @@ class StrategyAccount:
             except IndexError:
                 return pd.Series({"strike": None, "vol_mul": None, "opt_type": None})
 
-        def adjust_margin_by_combinations(init_margin):
-            total_margin = init_margin
-            combinations = self.strategy.strategy_combinations.combinations
-            for _, row in combinations.iterrows():
-                pair = row["instrument_id"].split("/")
-                pos = self.positions[self.positions["instrument_id"].isin(pair)]
-                pos = pos.sort_values(by="direction", ascending=False)
-                pos[["strike", "vol_mul", "opt_type"]] = pos["instrument_id"].apply(
-                    get_option_details
-                )
-                if len(pos) == 2:
-                    if pos["direction"].prod() < 0:  # 价差组合
-                        diff = (
-                            abs(pos["strike"].diff().iloc[1]) * pos["vol_mul"].iloc[0]
-                        )
-                        if (
-                            pos["opt_type"].iloc[0] == "CALL"
-                            and pos["strike"].iloc[0] < pos["strike"].iloc[1]
-                        ) or (
-                            pos["opt_type"].iloc[0] == "PUT"
-                            and pos["strike"].iloc[0] > pos["strike"].iloc[1]
-                        ):
-                            comb_margin = 0
-                        else:
-                            comb_margin = abs(diff * row["volume"] * 1.06)
-                        old_margin = pos["margin"] / pos["volume"] * row["volume"]
-                        old_margin = old_margin.sum()
-                        total_margin = total_margin + comb_margin - old_margin
-                    if pos["direction"].prod() > 0:  # 跨式或宽跨式组合
-                        comb_margin = (pos["margin"] / pos["volume"]).max() + (
-                            pos["price"] / pos["volume"]
-                        ).min()
-                        comb_margin = comb_margin * row["volume"]  # noqa
-                        total_margin = total_margin + (
-                            comb_margin - pos["margin"].sum()
-                        )
-            return total_margin
-
-        if self.strategy.strategy_positions is not None:
+        def create_positions():
             symbols = self.strategy.strategy_positions.get_active_symbols()
-            risks = self.datafeed.calcuate_risk(symbols)
+            risks = self.datafeed.calculate_risk(symbols)
             if risks is None:
                 return
             positions = self.strategy.strategy_positions.positions.copy()
             if positions.empty:
                 reset_account()
                 return
-            self.positions = calcuate_greeks(positions, risks)
+            positions = calcuate_greeks(positions, risks)
             price_dict = {
                 item["instrument_id"]: item["price"] for item in risks
             }  # noqa
-            self.positions["price"] = self.positions["instrument_id"].map(
-                price_dict
-            )  # noqa
-            total_margin = self.positions["margin"].sum()
-            total_margin = adjust_margin_by_combinations(total_margin)
+            positions["price"] = positions["instrument_id"].map(price_dict)  # noqa
+            positions[["strike", "vol_mul", "opt_type"]] = positions[
+                "instrument_id"
+            ].apply(get_option_details)
+
+            return positions
+
+        if self.strategy.strategy_positions is not None:
+            self.positions = create_positions()
+
+            # total_margin = self.positions["margin"].sum()
+            # total_margin = adjust_margin_by_combinations(total_margin)
+            total_margin = self.adjust_margin_by_comb("BOTH")
             if total_margin is None:
                 total_margin = 0
             floating_profit = (

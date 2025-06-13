@@ -365,7 +365,9 @@ class DolphinDBDataFeed(BaseDataFeed):
                         handler(symbol, period, last_bar)
                     self._bars_cache[symbol][period] = []
 
-    def calcuate_risk(self, symbols):
+    def calculate_risk(self, symbols):
+        symbols = [symbol.split(".")[0] for symbol in symbols]
+
         # 从instruments中获取所有相关合约和标的的信息
         contracts = {}
         underlying_symbols = set()
