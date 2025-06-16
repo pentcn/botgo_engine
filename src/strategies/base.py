@@ -1479,6 +1479,8 @@ class StrategyAccount:
         self.set_last_account()
 
     def adjust_margin_by_comb(self, opt_type="BOTH"):
+        if self.positions is None:
+            return 0
         if opt_type == "BOTH":
             total_margin = self.positions["margin"].sum()
         elif opt_type == "CALL":
@@ -1698,9 +1700,12 @@ class StrategyAccount:
 
             # total_margin = self.positions["margin"].sum()
             # total_margin = adjust_margin_by_combinations(total_margin)
+            if self.positions is None:
+                return
             total_margin = self.adjust_margin_by_comb("BOTH")
             if total_margin is None:
                 total_margin = 0
+
             floating_profit = (
                 self.positions["price"] - self.positions["open_price"]
             )  # noqa
