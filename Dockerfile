@@ -18,8 +18,8 @@ RUN pip install -r requirements.txt
 # 复制源代码
 COPY src/ ./src/
 
-# 创建数据目录（如果需要）
-RUN mkdir -p /app/data /app/logs
+# 创建数据目录和 .botgo 目录
+RUN mkdir -p /app/data /app/logs /root/.botgo
 
 # 暴露调试端口
 EXPOSE 5678
@@ -28,5 +28,5 @@ EXPOSE 5678
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 
-# 默认启动命令（带调试）
+# 默认启动命令（带调试，以 root 身份运行）
 CMD ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "src/main.py"] 

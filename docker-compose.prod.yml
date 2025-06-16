@@ -9,6 +9,7 @@ services:
     volumes:
       - ./data:/app/data  # 数据目录挂载
       - ./src/logs:/app/logs  # 日志目录挂载
+      - ~/.botgo:/root/.botgo  # 挂载用户目录下的 .botgo 目录
     environment:
       - PYTHONPATH=/app/src
       - PYTHONUNBUFFERED=1
