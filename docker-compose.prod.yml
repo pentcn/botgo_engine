@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  botgo-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: botgo_prod
+    volumes:
+      - ./data:/app/data  # 数据目录挂载
+      - ./src/logs:/app/logs  # 日志目录挂载
+    environment:
+      - PYTHONPATH=/app/src
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    
+    # 如果需要暴露HTTP端口，取消注释
+    # ports:
+    #   - "8000:8000" 
