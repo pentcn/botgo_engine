@@ -1538,6 +1538,8 @@ class StrategyAccount:
         :return: float
         """
         margin_total = 0.0
+        if self.positions is None:
+            return margin_total
         for idx, row in self.positions.iterrows():
             if opt_type != "BOTH" and row["opt_type"] != opt_type:
                 continue

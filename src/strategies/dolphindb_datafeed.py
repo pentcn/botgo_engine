@@ -79,7 +79,7 @@ class DolphinDBDataFeed(BaseDataFeed):
             """
         df = conn.run(sql)
         df = df.loc[
-            df["datetime"].dt.time >= time(1, 30, 0)
+            df["datetime"].dt.time >= time(9, 30, 0)
         ]  # dolphin提供的时间是utc时间，需要减去8小时
         conn.close()
         return df
