@@ -1762,7 +1762,7 @@ class StrategyAccount:
     def adjust_available_margin(self, value):
         self.account["available_margin"] += value
 
-    def get_uncomb_position(self, opt_type="CALL", is_seller=True):
+    def get_uncomb_position2(self, opt_type="CALL", is_seller=True):
         direction = -1 if is_seller else 1
         for _, row in self.strategy.strategy_combinations.combinations.iterrows():
             pair = row["instrument_id"].split("/")
@@ -1780,8 +1780,81 @@ class StrategyAccount:
                             f'{instrument_id}.{pos["exchange_id"].item()}',
                             volume - comb_volume,
                         )
-        else:
+
+        if self.positions is not None:
             for _, row in self.positions.iterrows():
                 if row["direction"] == direction and row["opt_type"] == opt_type:
                     return row["instrument_id"], row["volume"]
+        return None, None
+
+    def get_uncomb_position(self, opt_type="CALL", is_seller=True):
+        """
+        返回未构成组合的符合条件的合约及数量
+
+        Args:
+            opt_type (str): 期权类型，"CALL" 或 "PUT"
+            is_seller (bool): 是否是卖方，True表示卖方(-1方向)，False表示买方(1方向)
+
+        Returns:
+            tuple: (合约代码, 未组合数量) 或 (None, None)
+        """
+        if self.positions is None or self.positions.empty:
+            return None, None
+
+        direction = -1 if is_seller else 1
+
+        # 筛选符合条件的持仓
+        filtered_positions = self.positions[
+            (self.positions["direction"] == direction)
+            & (self.positions["opt_type"] == opt_type)
+        ]
+
+        if filtered_positions.empty:
+            return None, None
+
+        # 对每个符合条件的持仓，计算其参与组合的总量
+        for _, pos_row in filtered_positions.iterrows():
+            instrument_id = pos_row["instrument_id"]
+            total_volume = pos_row["volume"]
+
+            # 计算该合约参与组合的总量
+            combined_volume = 0
+            if (
+                hasattr(self.strategy, "strategy_combinations")
+                and self.strategy.strategy_combinations is not None
+                and not self.strategy.strategy_combinations.combinations.empty
+            ):
+
+                for (
+                    _,
+                    comb_row,
+                ) in self.strategy.strategy_combinations.combinations.iterrows():
+                    # 组合的instrument_id格式为 "symbol1/symbol2"
+                    pair = comb_row["instrument_id"].split("/")
+                    instrument_name = comb_row["instrument_name"]
+
+                    # 判断组合中成份合约的方向
+                    if "价差" in instrument_name:
+                        # 价差组合：pair[0]方向是1(买方)，pair[1]方向是-1(卖方)
+                        if instrument_id == pair[0] and direction == 1:
+                            combined_volume += comb_row["volume"]
+                        elif instrument_id == pair[1] and direction == -1:
+                            combined_volume += comb_row["volume"]
+                    else:
+                        # 非价差组合：pair[0]和pair[1]方向都是-1(卖方)
+                        if instrument_id in pair and direction == -1:
+                            combined_volume += comb_row["volume"]
+
+            # 计算未组合的数量
+            uncombined_volume = total_volume - combined_volume
+
+            if uncombined_volume > 0:
+                # 构造完整的合约代码
+                exchange_id = pos_row.get("exchange_id", "")
+                if exchange_id:
+                    symbol = f"{instrument_id}.{exchange_id}"
+                else:
+                    symbol = instrument_id
+                return symbol, uncombined_volume
+
         return None, None

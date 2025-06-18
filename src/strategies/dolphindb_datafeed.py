@@ -253,6 +253,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "volume": volume,
                 "openPrice": open_price,
                 "commission": commission,
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
             }
         )
 
@@ -269,6 +270,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "instrumentId": instrument_id,
                 "instrumentName": instrument_name,
                 "volume": volume,
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
             }
         )
 
@@ -297,6 +299,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "vega": vega,
                 "theta": theta,
                 "rho": rho,
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
             }
         )
 
@@ -517,6 +520,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "strategy": strategy_id,
                 "state_data": state_data,
                 "version": version,
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
             }
 
             # 使用PocketBase客户端保存数据
