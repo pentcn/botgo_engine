@@ -1780,4 +1780,8 @@ class StrategyAccount:
                             f'{instrument_id}.{pos["exchange_id"].item()}',
                             volume - comb_volume,
                         )
+        else:
+            for _, row in self.positions.iterrows():
+                if row["direction"] == direction and row["opt_type"] == opt_type:
+                    return row["instrument_id"], row["volume"]
         return None, None
