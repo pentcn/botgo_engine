@@ -129,6 +129,8 @@ def monitor_strategies():
     service = client.collection("strategies")
     deal_service = client.collection("deals")
 
+    StrategyFactory.reload_user_strategies()
+
     # 首先启动所有活跃的策略
     start_active_strategies(datafeed)
 

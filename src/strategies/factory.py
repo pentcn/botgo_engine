@@ -4,13 +4,14 @@ import sys
 import os
 from pathlib import Path
 from utils.logger import log
-from .implementations.wangba import WangBaStrategy
+
+# from .implementations.wangba import WangBaStrategy
 from .base import BaseStrategy
 
 
 class StrategyFactory:
     _strategies = {
-        "wangba": WangBaStrategy,
+        # "wangba": WangBaStrategy,
     }
 
     _user_strategies_loaded = False
@@ -21,21 +22,21 @@ class StrategyFactory:
         """为用户策略设置运行环境，自动添加项目路径"""
         if cls._original_sys_path is None:
             cls._original_sys_path = sys.path.copy()
-        
+
         # 获取当前项目的src目录路径
         current_file = Path(__file__)
         project_src_dir = current_file.parent.parent  # 从factory.py向上两级到src目录
-        project_root_dir = project_src_dir.parent     # 再向上一级到项目根目录
-        
+        project_root_dir = project_src_dir.parent  # 再向上一级到项目根目录
+
         # 将项目路径添加到sys.path（如果还没有添加）
         src_path = str(project_src_dir)
         root_path = str(project_root_dir)
-        
+
         if src_path not in sys.path:
             sys.path.insert(0, src_path)
         if root_path not in sys.path:
             sys.path.insert(0, root_path)
-        
+
         log(f"用户策略环境设置完成，项目路径已自动添加: {src_path}")
 
     @classmethod
@@ -54,7 +55,7 @@ class StrategyFactory:
         try:
             # 设置用户策略运行环境
             cls._setup_user_strategy_environment()
-            
+
             # 获取用户主目录
             user_home = Path.home()
             botgo_dir = user_home / ".botgo"
@@ -94,10 +95,10 @@ class StrategyFactory:
             raise ImportError(f"无法创建模块规范: {file_path}")
 
         module = importlib.util.module_from_spec(spec)
-        
+
         # 在执行模块前，确保环境已设置
         cls._setup_user_strategy_environment()
-        
+
         spec.loader.exec_module(module)
 
         # 查找继承自BaseStrategy的类
@@ -105,20 +106,22 @@ class StrategyFactory:
         for name, obj in inspect.getmembers(module, inspect.isclass):
             if (
                 obj != BaseStrategy
-                and hasattr(obj, '__module__')
-                and hasattr(obj, '__bases__')
+                and hasattr(obj, "__module__")
+                and hasattr(obj, "__bases__")
             ):
                 # 检查类是否定义在当前模块中
-                if obj.__module__ == module_name or obj.__module__ == '__main__':
+                if obj.__module__ == module_name or obj.__module__ == "__main__":
                     # 检查是否继承自BaseStrategy（通过类名和模块路径）
                     is_base_strategy_subclass = False
                     for base in obj.__mro__:  # 使用方法解析顺序检查所有基类
-                        if (base.__name__ == 'BaseStrategy' and 
-                            hasattr(base, '__module__') and 
-                            'strategies.base' in base.__module__):
+                        if (
+                            base.__name__ == "BaseStrategy"
+                            and hasattr(base, "__module__")
+                            and "strategies.base" in base.__module__
+                        ):
                             is_base_strategy_subclass = True
                             break
-                    
+
                     if is_base_strategy_subclass:
                         strategy_classes.append((name, obj))
 
@@ -161,7 +164,7 @@ class StrategyFactory:
     @classmethod
     def create_strategy(cls, datafeed, strategy_id, name, params):
         # 首次调用时加载用户策略
-        cls._load_user_strategies()
+        # cls._load_user_strategies()
 
         strategy_class = cls._strategies.get(name)
         if not strategy_class:
@@ -182,10 +185,6 @@ class StrategyFactory:
         """重新加载用户策略（用于开发调试）"""
         cls._user_strategies_loaded = False
         # 清除之前加载的用户策略（保留内置策略）
-        builtin_strategies = {
-            "moving_average": MovingAverageStrategy,
-            "rsi": RSIStrategy,
-            "wangba": WangBaStrategy,
-        }
+        builtin_strategies = {}
         cls._strategies = builtin_strategies.copy()
         cls._load_user_strategies()
