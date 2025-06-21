@@ -243,9 +243,16 @@ class OptionChain:
 
     def _build_chain_structure(self):
         """构建链式结构"""
+        # 获取所有到期日，按时间排序（用于计算monthly索引）
+        all_expire_dates = sorted(set(self.df["ExpireDate"]))
+
         # 1. 创建所有合约节点
         for _, row in self.df.iterrows():
-            contract = OptionContract(row.to_dict())
+            contract_data = row.to_dict()
+            # 添加monthly键，保存月度索引号
+            expire_date = contract_data["ExpireDate"]
+            contract_data["monthly"] = all_expire_dates.index(expire_date)
+            contract = OptionContract(contract_data)
             self.contracts[contract.instrument_id] = contract
 
         # 2. 按到期日和期权类型分组，构建行权价链

@@ -8,7 +8,7 @@ from queue import Queue
 from typing import Any, Dict, Set
 from utils.logger import log
 from utils.common import DataFrameWrapper, record2dataframe, short_uuid, decompose
-from utils.option import OptionCombinationType
+from utils.option import OptionCombinationType, MarketOptionChain
 from utils.trade_calendar import TradeCalendar
 import numpy as np
 
@@ -514,9 +514,9 @@ class BaseStrategy(ABC):
                         * deal_record.volume
                         * direction
                     )
-                    multi = self.datafeed.get_contract_property(
-                        deal_record.instrument_id, "VolumeMultiple"
-                    )
+                    multi = self.datafeed.market_option_chain.get_contract_by_id(
+                        deal_record.instrument_id
+                    ).data["VolumeMultiple"]
                     profit = profit * multi
                     profit = profit - self.strategy_positions.get_commission(
                         deal_record.instrument_id
@@ -972,50 +972,42 @@ class BaseDataFeed(ABC):
         self._subscribed_handlers = {}
         self._bars_cache = {}
         self.trade_calendar = TradeCalendar()
+        self._market_option_chain = None  # 缓存MarketOptionChain实例
 
     @property
     def option_contracts(self):
         if self.instruments is None or self.instruments.empty:
             self.instruments = self.load_last_option_contracts()
+            self._market_option_chain = None  # 重置缓存
             return self.instruments
         else:
             date = self.instruments.iloc[0]["Date"]
             if date != datetime.now().date():
                 self.instruments = self.load_last_option_contracts()
+                self._market_option_chain = None  # 重置缓存
             return self.instruments
 
-    def get_contract_property(self, instrument_id, column_name):
-        contract = self.option_contracts.loc[
-            self.option_contracts["InstrumentID"] == instrument_id
-        ]
-        if contract.empty:
-            return None
-        return contract.iloc[0][column_name].item()
+    @property
+    def market_option_chain(self):
+        """获取市场期权链实例"""
+        if self._market_option_chain is None:
+            self._market_option_chain = MarketOptionChain(
+                self.load_last_option_contracts()
+            )
+        return self._market_option_chain
 
     def get_contract_info(self, symbol):
-        instrument_id = symbol.split(".")[0]
-        contract = self.option_contracts.loc[
-            self.option_contracts["InstrumentID"] == instrument_id
-        ]
-        if contract.empty:
-            return None
-        strike = contract.iloc[0]["OptExercisePrice"]
-        expire_date = contract.iloc[0]["EndDelivDate"].item()
-        undl_code = contract.iloc[0]["OptUndlCode"]
-        opt_type = contract.iloc[0]["OptType"]
-        multi = contract.iloc[0]["VolumeMultiple"].item()
-        all_expire_dates = list(
-            self.option_contracts.groupby("EndDelivDate").groups.keys()
-        )
-        all_expire_dates = sorted(all_expire_dates)
-        return {
-            "strike": strike,
-            "expire_date": expire_date,
-            "undl": undl_code,
-            "opt_type": opt_type,
-            "multi": multi,
-            "monthly": all_expire_dates.index(expire_date),
-        }
+        contract_obj = self.get_option_contract_by_id(symbol)
+        if contract_obj:
+            return {
+                "strike": contract_obj.strike_price,
+                "expire_date": contract_obj.expire_date,
+                "undl": contract_obj.data["OptUndlCode"],
+                "opt_type": contract_obj.option_type,
+                "multi": contract_obj.data["VolumeMultiple"],
+                "monthly": contract_obj.data["monthly"],
+            }
+        return None
 
     def find_contract_symbol(self, base_symbol, monthly, strikely):
         """
@@ -1088,6 +1080,83 @@ class BaseDataFeed(ABC):
             row = df.iloc[-1] if need_higher_strike else df.iloc[0]
             return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
         return None
+
+    def get_option_contract_by_id(self, instrument_id):
+        """
+        使用MarketOptionChain获取期权合约对象
+        :param instrument_id: 合约代码
+        :return: OptionContract对象或None
+        """
+        if self.market_option_chain:
+            return self.market_option_chain.get_contract_by_id(instrument_id)
+        return None
+
+    def get_option_chain(self, underlying_code, chain_type="standard"):
+        """
+        获取指定标的的期权链
+        :param underlying_code: 标的代码
+        :param chain_type: 链类型 ('standard' 或 'non_standard')
+        :return: OptionChain对象
+        """
+        if self.market_option_chain:
+            return self.market_option_chain.get_option_chain(
+                underlying_code, chain_type
+            )
+        return None
+
+    def get_all_underlying_codes(self):
+        """获取所有标的代码"""
+        if self.market_option_chain:
+            return self.market_option_chain.get_all_underlying_codes()
+        return []
+
+    def get_atm_contracts(
+        self, underlying_code, underlying_price, expire_date=None, chain_type="standard"
+    ):
+        """
+        获取平值期权合约
+        :param underlying_code: 标的代码
+        :param underlying_price: 标的价格
+        :param expire_date: 到期日（可选）
+        :param chain_type: 链类型
+        :return: {'CALL': contract, 'PUT': contract}
+        """
+        option_chain = self.get_option_chain(underlying_code, chain_type)
+        if option_chain:
+            return option_chain.get_atm_contracts(underlying_price, expire_date)
+        return {}
+
+    def get_contracts_by_expiry(
+        self, underlying_code, expire_date, option_type=None, chain_type="standard"
+    ):
+        """
+        根据到期日获取合约列表
+        :param underlying_code: 标的代码
+        :param expire_date: 到期日
+        :param option_type: 期权类型（可选）
+        :param chain_type: 链类型
+        :return: 合约列表
+        """
+        option_chain = self.get_option_chain(underlying_code, chain_type)
+        if option_chain:
+            return option_chain.get_contracts_by_expiry(expire_date, option_type)
+        return []
+
+    def get_contracts_by_strike(
+        self, underlying_code, strike_price, option_type=None, chain_type="standard"
+    ):
+        """
+        根据行权价获取合约列表
+        :param underlying_code: 标的代码
+        :param strike_price: 行权价
+        :param option_type: 期权类型（可选）
+        :param chain_type: 链类型
+        :return: 合约列表
+        """
+        option_chain = self.get_option_chain(underlying_code, chain_type)
+        if option_chain:
+            return option_chain.get_contracts_by_strike(strike_price, option_type)
+        return []
 
     @abstractmethod
     def start(self):
