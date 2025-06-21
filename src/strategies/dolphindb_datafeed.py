@@ -109,8 +109,8 @@ class DolphinDBDataFeed(BaseDataFeed):
             self.market_db_config["DB_PASSWORD"],
         )
         sql = f"""
-            select * from loadTable("{self.market_db_config["DB_NAME"]}", "{self.market_db_config["OPTION_CONTRACT_TABLE"]}")
-            where date = (select max(date) from loadTable("{self.market_db_config["DB_NAME"]}", "{self.market_db_config["OPTION_CONTRACT_TABLE"]}"))
+            select * from loadTable("{self.market_db_config["DB_NAME"]}", "instruments")
+            where date = (select max(date) from loadTable("{self.market_db_config["DB_NAME"]}", "instruments"))
         """
         df = conn.run(sql)
         conn.close()
