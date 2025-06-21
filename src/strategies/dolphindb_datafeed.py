@@ -378,14 +378,12 @@ class DolphinDBDataFeed(BaseDataFeed):
         underlying_symbols = set()
 
         for symbol in symbols:
-            contract = self.option_contracts.loc[
-                self.option_contracts["InstrumentID"] == symbol
-            ]
-            if contract.empty:
+            contract = self.get_option_contract_by_id(symbol)
+            if contract is None:
                 continue
-            contracts[f'{symbol}.{contract["ExchangeID"].item()}'] = contract
+            contracts[f'{symbol}.{contract.data["ExchangeID"]}'] = contract
             underlying_symbols.add(
-                f"{contract['OptUndlCode'].item()}.{contract['OptUndlMarket'].item()}"
+                f"{contract.data['OptUndlCode']}.{contract.data['OptUndlMarket']}"
             )
 
         if not contracts:
@@ -406,7 +404,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                     t
                     for t in ticks
                     if t["symbol"]
-                    == f"{contract['OptUndlCode'].item()}.{contract['OptUndlMarket'].item()}"
+                    == f"{contract.data['OptUndlCode']}.{contract.data['OptUndlMarket']}"
                 ),
                 None,
             )
@@ -416,26 +414,26 @@ class DolphinDBDataFeed(BaseDataFeed):
 
             # 计算保证金
             margin = calculate_margin(
-                option_type=contract["OptType"].item()[0].lower(),
+                option_type=contract.data["OptType"][0].lower(),
                 market_price=contract_tick["lastPrice"],
                 underlying_price=underlying_tick["lastPrice"],
-                strike_price=contract["OptExercisePrice"].item(),
-                contract_multiplier=contract["VolumeMultiple"].item(),
+                strike_price=contract.data["OptExercisePrice"],
+                contract_multiplier=contract.data["VolumeMultiple"],
             )
 
             # 计算剩余天数
             days_to_expiry = (
-                parse(str(contract["ExpireDate"].item())).date() - datetime.now().date()
+                parse(str(contract.data["ExpireDate"])).date() - datetime.now().date()
             ).days + 1
 
             # 计算希腊字母值
             greeks = calculate_iv_and_greeks(
                 market_price=contract_tick["lastPrice"],
                 underlying_price=underlying_tick["lastPrice"],
-                strike_price=contract["OptExercisePrice"].item(),
+                strike_price=contract.data["OptExercisePrice"],
                 t_days=days_to_expiry,
                 r=0.0,  # 假设无风险利率为3%
-                option_type=contract["OptType"].item()[0].lower(),
+                option_type=contract.data["OptType"][0].lower(),
             )
 
             results.append(
@@ -490,11 +488,9 @@ class DolphinDBDataFeed(BaseDataFeed):
         }
 
     def get_strike(self, instrument_id):
-        code = instrument_id.split(".")[0]
-        instruments = self.option_contracts
-        row = instruments.loc[instruments["InstrumentID"] == code]
-        if not row.empty:
-            return row.iloc[0]["OptExercisePrice"], row.iloc[0]["OptType"]
+        contract = self.get_option_contract_by_id(instrument_id.split(".")[0])
+        if contract is not None:
+            return contract.data["OptExercisePrice"], contract.data["OptType"]
         return None, None
 
     # 策略状态持久化相关方法

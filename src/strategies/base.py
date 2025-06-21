@@ -975,19 +975,6 @@ class BaseDataFeed(ABC):
         self._market_option_chain = None  # 缓存MarketOptionChain实例
 
     @property
-    def option_contracts(self):
-        if self.instruments is None or self.instruments.empty:
-            self.instruments = self.load_last_option_contracts()
-            self._market_option_chain = None  # 重置缓存
-            return self.instruments
-        else:
-            date = self.instruments.iloc[0]["Date"]
-            if date != datetime.now().date():
-                self.instruments = self.load_last_option_contracts()
-                self._market_option_chain = None  # 重置缓存
-            return self.instruments
-
-    @property
     def market_option_chain(self):
         """获取市场期权链实例"""
         if self._market_option_chain is None:
@@ -997,6 +984,7 @@ class BaseDataFeed(ABC):
         return self._market_option_chain
 
     def get_contract_info(self, symbol):
+        symbol = symbol.split(".")[0]
         contract_obj = self.get_option_contract_by_id(symbol)
         if contract_obj:
             return {
@@ -1009,84 +997,13 @@ class BaseDataFeed(ABC):
             }
         return None
 
-    def find_contract_symbol(self, base_symbol, monthly, strikely):
-        """
-        根据合约基础信息，生成合约代码
-        base_symbol: 合约基础代码
-        monthly: 合约月份
-        strikely: 合约行权价的类型，0代码当前行权价，1比当前实一个价位，-1比当前虚一个价位，以此类推
-        return: 合约代码
-        """
-        info = self.get_contract_info(base_symbol)
-        if info is None:
-            return None
-        all_expire_dates = list(
-            self.option_contracts.groupby("EndDelivDate").groups.keys()
-        )
-        all_expire_dates = sorted(all_expire_dates)
-        expire_date = all_expire_dates[monthly]
-        filter_1 = self.option_contracts["VolumeMultiple"] == info["multi"]
-        filter_2 = self.option_contracts["OptUndlCode"] == info["undl"]
-        filter_3 = self.option_contracts["EndDelivDate"] == expire_date
-        filter_4 = self.option_contracts["OptType"] == info["opt_type"]
-        df = self.option_contracts.loc[filter_1 & filter_2 & filter_3 & filter_4]
-        df = df.sort_values("OptExercisePrice")
-        if strikely == 0:
-            row = df.loc[df["OptExercisePrice"] == info["strike"]].iloc[0]
-            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
-        if (strikely / abs(strikely) == 1 and info["opt_type"] == "CALL") or (
-            strikely / abs(strikely) == -1 and info["opt_type"] == "PUT"
-        ):
-            df = df.loc[df["OptExercisePrice"] <= info["strike"]]
-            df = df.reset_index(drop=True)
-            index = -(abs(strikely)) - 1
-            row = df.iloc[index]
-            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
-        else:
-            df = df.loc[df["OptExercisePrice"] >= info["strike"]]
-            df = df.reset_index(drop=True)
-            row = df.iloc[abs(strikely)]
-            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
-
-    def find_std_contract_symbol(
-        self,
-        price,
-        moneyness_range,
-        monthly,
-        undl,
-        is_call=True,
-        need_higher_strike=True,
-    ):
-        all_expire_dates = list(
-            self.option_contracts.groupby("EndDelivDate").groups.keys()
-        )
-        all_expire_dates = sorted(all_expire_dates)
-        expire_date = all_expire_dates[monthly]
-        filter_1 = self.option_contracts["VolumeMultiple"] == 10000
-        filter_2 = self.option_contracts["OptUndlCode"] == undl.split(".")[0]
-        filter_3 = self.option_contracts["EndDelivDate"] == expire_date
-        filter_4 = self.option_contracts["OptType"] == ("CALL" if is_call else "PUT")
-        df = self.option_contracts.loc[filter_1 & filter_2 & filter_3 & filter_4]
-        if is_call:
-            df["moneyness"] = df["OptExercisePrice"].apply(lambda x: price / x)
-        else:
-            df["moneyness"] = df["OptExercisePrice"] / price
-        df = df.loc[
-            (df["moneyness"] >= moneyness_range[0])
-            & (df["moneyness"] <= moneyness_range[1])
-        ]
-        df = df.sort_values("OptExercisePrice", ascending=True)
-        if not df.empty:
-            row = df.iloc[-1] if need_higher_strike else df.iloc[0]
-            return f'{row["InstrumentID"]}.{row["ExchangeID"]}'
-        return None
-
     def get_option_contract_by_id(self, instrument_id):
         """
         使用MarketOptionChain获取期权合约对象
         :param instrument_id: 合约代码
         :return: OptionContract对象或None
         """
+        instrument_id = instrument_id.split(".")[0]
         if self.market_option_chain:
             return self.market_option_chain.get_contract_by_id(instrument_id)
         return None
@@ -1157,6 +1074,74 @@ class BaseDataFeed(ABC):
         if option_chain:
             return option_chain.get_contracts_by_strike(strike_price, option_type)
         return []
+
+    def get_option_contract_by_moneyness(
+        self,
+        price,
+        moneyness_range,
+        monthly,
+        undl,
+        is_call=True,
+        need_higher_strike=True,
+        chain_type="standard",
+    ):
+        """
+        使用期权链根据价值度查找期权合约
+        :param price: 标的价格
+        :param moneyness_range: 价值度范围 [min, max]
+        :param monthly: 月份索引
+        :param undl: 标的代码
+        :param is_call: 是否为看涨期权
+        :param need_higher_strike: 是否需要更高的行权价
+        :param chain_type: 链类型
+        :return: 合约代码字符串或None
+        """
+        underlying_code = undl.split(".")[0]
+        option_chain = self.get_option_chain(underlying_code, chain_type)
+
+        if not option_chain:
+            return None
+
+        # 获取所有到期日，按时间排序
+        all_expire_dates = sorted(option_chain.get_all_expire_dates())
+
+        if monthly >= len(all_expire_dates):
+            return None
+
+        expire_date = all_expire_dates[monthly]
+        option_type = "CALL" if is_call else "PUT"
+
+        # 获取指定到期日和期权类型的合约
+        contracts = option_chain.get_contracts_by_expiry(expire_date, option_type)
+
+        if not contracts:
+            return None
+
+        # 计算价值度并筛选
+        valid_contracts = []
+        for contract in contracts:
+            if is_call:
+                moneyness = price / contract.strike_price
+            else:
+                moneyness = contract.strike_price / price
+
+            if moneyness_range[0] <= moneyness <= moneyness_range[1]:
+                valid_contracts.append((contract, moneyness))
+
+        if not valid_contracts:
+            return None
+
+        # 按行权价排序
+        valid_contracts.sort(key=lambda x: x[0].strike_price)
+
+        # 选择合约
+        selected_contract = (
+            valid_contracts[-1][0] if need_higher_strike else valid_contracts[0][0]
+        )
+
+        return (
+            f'{selected_contract.instrument_id}.{selected_contract.data["ExchangeID"]}'
+        )
 
     @abstractmethod
     def start(self):
@@ -1731,20 +1716,34 @@ class StrategyAccount:
         def get_option_details(id):
             """统一获取期权行权价和乘数"""
             try:
-                row = self.datafeed.option_contracts.loc[
-                    self.datafeed.option_contracts["InstrumentID"] == id,
-                    ["OptExercisePrice", "VolumeMultiple", "OptType", "ExchangeID"],
-                ].iloc[0]
+                contract = self.datafeed.get_option_contract_by_id(id)
+                if contract is not None:
+                    return pd.Series(
+                        {
+                            "strike": contract.data["OptExercisePrice"],
+                            "vol_mul": contract.data["VolumeMultiple"],
+                            "opt_type": contract.data["OptType"],
+                            "exchange_id": contract.data["ExchangeID"],
+                        }
+                    )
+                else:
+                    return pd.Series(
+                        {
+                            "strike": None,
+                            "vol_mul": None,
+                            "opt_type": None,
+                            "exchange_id": None,
+                        }
+                    )
+            except Exception:
                 return pd.Series(
                     {
-                        "strike": row["OptExercisePrice"],
-                        "vol_mul": row["VolumeMultiple"],
-                        "opt_type": row["OptType"],
-                        "exchange_id": row["ExchangeID"],
+                        "strike": None,
+                        "vol_mul": None,
+                        "opt_type": None,
+                        "exchange_id": None,
                     }
                 )
-            except IndexError:
-                return pd.Series({"strike": None, "vol_mul": None, "opt_type": None})
 
         def create_positions():
             symbols = self.strategy.strategy_positions.get_active_symbols()

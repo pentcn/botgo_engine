@@ -22,10 +22,6 @@ class WangBaStrategy(BaseStrategy):
         # )
         # self.release_combination("202505300000821")
 
-        # symbol_1 = self.datafeed.find_contract_symbol(call_1, 1, -1)
-        # symbol_2 = self.datafeed.find_std_contract_symbol(
-        #     2.75, (0.99, 1.01), 0, "510050", False, True
-        # )
         # print(symbol_2)
 
     def on_post_init(self):
