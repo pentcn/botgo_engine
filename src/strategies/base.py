@@ -449,7 +449,7 @@ class BaseStrategy(ABC):
 
     def _update_strategy_info(self, deal_record):
         if "/" in deal_record.instrument_id:
-            if deal_record.direction == 48:  # 构造组合
+            if deal_record.direction == 49:  # 构造组合
                 self.strategy_combinations.combine(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
@@ -457,7 +457,7 @@ class BaseStrategy(ABC):
                 )
                 self.strategy_account.set_last_account()
 
-            elif deal_record.direction == 49:  # 拆分组合
+            elif deal_record.direction == 48:  # 拆分组合
                 self.strategy_combinations.release(
                     deal_record.instrument_id,
                     deal_record.instrument_name,
