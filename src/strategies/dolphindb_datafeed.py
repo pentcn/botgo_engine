@@ -254,6 +254,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "openPrice": open_price,
                 "commission": commission,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
+                "user": self.user_id,
             }
         )
 
@@ -271,6 +272,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "instrumentName": instrument_name,
                 "volume": volume,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
+                "user": self.user_id,
             }
         )
 
@@ -300,6 +302,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "theta": theta,
                 "rho": rho,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
+                "user": self.user_id,
             }
         )
 
