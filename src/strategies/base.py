@@ -1935,7 +1935,7 @@ class StrategyAccount:
 
         return None, None
 
-    def get_comb_profit(self, comb_id, volume):
+    def get_vertical_comb_profit(self, comb_id, volume):
         positions = self.positions
         code_1, code_2 = comb_id.split("/")
         pos_1 = positions.loc[
@@ -1950,3 +1950,20 @@ class StrategyAccount:
         ).item() * volume
 
         return profit
+
+    def get_vertical_comb_open_spead(self, comb_id, volume):
+        positions = self.positions
+        code_1, code_2 = comb_id.split("/")
+        pos_1 = positions.loc[
+            (positions["direction"] == 1) & (positions["instrument_id"] == code_1)
+        ].iloc[0]
+        pos_2 = positions.loc[
+            (positions["direction"] == -1) & (positions["instrument_id"] == code_2)
+        ].iloc[0]
+
+        spread = (
+            pos_1["open_price"] * pos_1["direction"]
+            + pos_2["open_price"] * pos_2["direction"]
+        ) * volume
+        spread = -spread
+        return spread

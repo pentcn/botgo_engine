@@ -7,5 +7,7 @@
 			"path": "C:/Users/pentcn/.botgo"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"powershell.cwd": "botgo_engine"
+	}
 }
