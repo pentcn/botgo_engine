@@ -243,6 +243,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         volume,
         open_price,  # noqa
         commission,
+        user_id,
     ):
         self.client.collection("strategyPositions").create(
             {
@@ -254,7 +255,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "openPrice": open_price,
                 "commission": commission,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
-                "user": self.user_id,
+                "user": user_id,
             }
         )
 
@@ -264,6 +265,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         instrument_id,
         instrument_name,
         volume,
+        user_id,
     ):
         self.client.collection("strategyCombinations").create(
             {
@@ -272,7 +274,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "instrumentName": instrument_name,
                 "volume": volume,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
-                "user": self.user_id,
+                "user": user_id,
             }
         )
 
@@ -288,6 +290,7 @@ class DolphinDBDataFeed(BaseDataFeed):
         vega,
         theta,
         rho,
+        user_id,
     ):
         self.client.collection("strategyAccount").create(
             {
@@ -302,7 +305,7 @@ class DolphinDBDataFeed(BaseDataFeed):
                 "theta": theta,
                 "rho": rho,
                 "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f"),
-                "user": self.user_id,
+                "user": user_id,
             }
         )
 

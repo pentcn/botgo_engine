@@ -149,6 +149,18 @@ class OptionContract:
         self.next_expiry: Optional["OptionContract"] = None  # 后一个到期时间合约
         self.counterpart: Optional["OptionContract"] = None  # 对手合约
 
+    @property
+    def symbol(self):
+        return f"{self.instrument_id}.{self.data['ExchangeID']}"
+
+    @property
+    def is_call(self):
+        return self.option_type == "CALL"
+
+    @property
+    def is_put(self):
+        return self.option_type == "PUT"
+
 
 class MarketOptionChain:
     """期权市场链管理器，包含所有品种的期权链"""

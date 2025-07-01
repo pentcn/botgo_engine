@@ -252,7 +252,7 @@ class BaseStrategy(ABC):
                 "opType": command_id,  # 50：买入开仓 51：卖出平仓 52：卖出开仓  53：买入平仓
                 "orderType": 1101,
                 "orderCode": symbol,
-                "prType": 5,  # 14对手价，5最新价
+                "prType": 14,  # 14对手价，5最新价
                 "price": -1,
                 "volume": vol,
                 "strategyName": self.name,
@@ -1229,6 +1229,7 @@ class StrategyPosition:
                 row["volume"],
                 row["open_price"],
                 row["commission"],
+                self.strategy.user_id,
             )
 
     def open(
@@ -1291,6 +1292,7 @@ class StrategyPosition:
             save_volume,
             save_price,
             save_commission,
+            self.strategy.user_id,
         )
 
     def close(
@@ -1340,6 +1342,7 @@ class StrategyPosition:
             save_volume,
             save_price,
             save_commission,
+            self.strategy.user_id,
         )
 
     def get_active_symbols(self):
@@ -1415,6 +1418,7 @@ class StrategyCombination:
                 row["instrument_id"],
                 row["instrument_name"],
                 row["volume"],
+                self.strategy.user_id,
             )
 
     def release(self, instrument_id, instrument_name, volume):
@@ -1438,6 +1442,7 @@ class StrategyCombination:
             instrument_id,
             instrument_name,
             new_volume,
+            self.strategy.user_id,
         )
 
     def combine(self, instrument_id, instrument_name, volume):
@@ -1463,6 +1468,7 @@ class StrategyCombination:
                 instrument_id,
                 instrument_name,
                 volume,
+                self.strategy.user_id,
             )
         else:
             existing_combination_volume = int(
@@ -1477,6 +1483,7 @@ class StrategyCombination:
                 instrument_id,
                 instrument_name,
                 new_volume,
+                self.strategy.user_id,
             )
 
     def get_combs_profit_info(self):
@@ -1822,6 +1829,7 @@ class StrategyAccount:
             self.account["vega"],
             self.account["theta"],
             self.account["rho"],
+            self.strategy.user_id,
         )
 
     def add_profit(self, profit):
