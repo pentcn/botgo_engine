@@ -1934,3 +1934,19 @@ class StrategyAccount:
                 return symbol, uncombined_volume
 
         return None, None
+
+    def get_comb_profit(self, comb_id, volume):
+        positions = self.positions
+        code_1, code_2 = comb_id.split("/")
+        pos_1 = positions.loc[
+            (positions["direction"] == 1) & (positions["instrument_id"] == code_1)
+        ]
+        pos_2 = positions.loc[
+            (positions["direction"] == -1) & (positions["instrument_id"] == code_2)
+        ]
+
+        profit = (pos_1["price"] - pos_1["open_price"]).item() * volume + (
+            pos_2["open_price"] - pos_2["price"]
+        ).item() * volume
+
+        return profit
