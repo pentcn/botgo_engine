@@ -1936,6 +1936,9 @@ class StrategyAccount:
         return None, None
 
     def get_vertical_comb_profit(self, comb_id, volume):
+        if self.positions is None:
+            self.set_last_account()
+
         positions = self.positions
         code_1, code_2 = comb_id.split("/")
         pos_1 = positions.loc[
@@ -1952,6 +1955,8 @@ class StrategyAccount:
         return profit
 
     def get_vertical_comb_open_spead(self, comb_id, volume):
+        if self.positions is None:
+            self.set_last_account()
         positions = self.positions
         code_1, code_2 = comb_id.split("/")
         pos_1 = positions.loc[
